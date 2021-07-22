@@ -84,9 +84,9 @@ public class DemoModel{
                 </div>
                 <div>
                     <pre>
-public static List<T> DataReaderMapToList<T>(IDataReader dr)
+public static List< T > DataReaderMapToList<T>(IDataReader dr)
 {
-    List<T> list = new List<T>();
+    List< T > list = new List< T >();
     T obj = default(T);
     while (dr.Read())
     {
@@ -106,9 +106,9 @@ public static List<T> DataReaderMapToList<T>(IDataReader dr)
                 </div>
                 <div>
                     <pre>
-public List<DemoModel> GetDemoModelList(string DemoID)
+public List< DemoModel > GetDemoModelList(string DemoID)
 {
-    List<DemoModel> demoList = new List<DemoModel>();
+    List< DemoModel > demoList = new List<DemoModel>();
     using (SqlConnection con = new SqlConnection("connectionstring"))
     {
         using (SqlCommand cmd = new SqlCommand("usp_DemoGrid", con))
