@@ -1,1 +1,270 @@
 
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+  </head>
+  <body>
+    <style>
+      .navbar {
+        overflow: hidden;
+        background-color: #333;
+        position: fixed;
+        top: 0;
+        width: 100%;
+      }
+
+      .navbar a {
+        float: left;
+        display: block;
+        color: #ffffff;
+        padding: 14px 16px;
+        text-decoration: none;
+        font-size: 17px;
+        width: 100%;
+        text-align: left;
+      }
+
+      .main {
+        padding: 16px;
+        margin-top: 30px;
+        height: 1500px;
+        /* Used in this example to enable scrolling */
+      }
+    </style>
+    <nav class="navbar  navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span style="color:white" class="glyphicon glyphicon-th-list"></span>
+          </button>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li>
+              <a href="https://milansanghani88.github.io/datatablesnet/datatablesnet.html">Datareader Mapping</a>
+            </li>
+            <li>
+              <a href="https://milansanghani88.github.io/datatablesnet/extension.html">Extension</a>
+            </li>
+          </ul>
+        </div>
+        <!--/.nav-collapse -->
+      </div>
+    </nav>
+    <div class="main" style="padding:0px 6px;">
+      <div class="row">
+        <div class="col-xs-12">
+          <h3>Extension</h3>
+          <div>
+            <pre>
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+
+namespace Lakshmi.Common
+{
+    public static class Extensions
+    {
+        /// it handles null also
+        public static string ToSafeString(this string theString)
+        {  
+            return Convert.ToString(theString);
+        } 
+
+        /// Like linq take - takes the first x characters
+        public static string Take(this string theString, int count, bool ellipsis = false)
+        {
+            int lengthToTake = Math.Min(count, theString.Length);
+            var cutDownString = theString.Substring(0, lengthToTake);
+
+            if (ellipsis && lengthToTake < theString.Length)
+                cutDownString += "...";
+
+            return cutDownString;
+        }
+
+        //like linq skip - skips the first x characters and returns the remaining string
+        public static string Skip(this string theString, int count)
+        {
+            int startIndex = Math.Min(count, theString.Length);
+            var cutDownString = theString.Substring(startIndex - 1);
+
+            return cutDownString;
+        }
+
+        //reverses the string... pretty obvious really
+        public static string Reverse(this string input)
+        {
+            char[] chars = input.ToCharArray();
+            Array.Reverse(chars);
+            return new String(chars);
+        }
+
+        // "a string".IsNullOrEmpty() beats string.IsNullOrEmpty("a string")
+        public static bool IsNullOrEmpty(this string theString)
+        {
+            return string.IsNullOrEmpty(theString);
+        }
+
+        //not so sure about this one -
+        //"a string {0}".Format("blah") vs string.Format("a string {0}", "blah")
+        public static string With(this string format, params object[] args)
+        {
+            return string.Format(format, args);
+        }
+
+        //ditches html tags - note it doesnt get rid of things like &nbsp;
+        public static string StripHtml(this string html)
+        {
+            if (string.IsNullOrEmpty(html))
+                return string.Empty;
+
+            return Regex.Replace(html, @"<[^>]*>", string.Empty);
+        }
+
+        public static bool Match(this string value, string pattern)
+        {
+            return Regex.IsMatch(value, pattern);
+        }
+
+        //splits string into array with chunks of given size. not really that useful..
+        public static string[] SplitIntoChunks(this string toSplit, int chunkSize)
+        {
+            if (string.IsNullOrEmpty(toSplit))
+                return new string[] { "" };
+
+            int stringLength = toSplit.Length;
+
+            int chunksRequired = (int)Math.Ceiling((decimal)stringLength / (decimal)chunkSize);
+            var stringArray = new string[chunksRequired];
+
+            int lengthRemaining = stringLength;
+
+            for (int i = 0; i < chunksRequired; i++)
+            {
+                int lengthToUse = Math.Min(lengthRemaining, chunkSize);
+                int startIndex = chunkSize * i;
+                stringArray[i] = toSplit.Substring(startIndex, lengthToUse);
+
+                lengthRemaining = lengthRemaining - lengthToUse;
+            }
+
+            return stringArray;
+        }
+
+        public static string Join(this IEnumerable
+												<object> array, string seperator)
+        {
+            if (array == null)
+                return "";
+
+            return string.Join(seperator, array.ToArray());
+        }
+
+        public static string Join(this object[] array, string seperator)
+        {
+            if (array == null)
+                return "";
+
+            return string.Join(seperator, array);
+        }
+          
+        public static string ToMoney(this decimal theValue, bool IsOmitSymbol = false)
+        {
+            try
+            {
+                System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("en-US");
+                culture.NumberFormat.CurrencyNegativePattern = 1;
+
+                if (IsOmitSymbol)
+                {
+                    return theValue.ToString("C", culture).Remove(0, 1).Trim();
+                }
+                else
+                {
+                    return theValue.ToString("C", culture);
+                }                
+            }
+            catch (Exception)
+            {
+                return Convert.ToString(theValue);
+            }
+        }
+        public static string ToMoney(this string theValue, bool IsOmitSymbol = false)
+        {
+            try
+            {
+                System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("en-US");
+                culture.NumberFormat.CurrencyNegativePattern = 1;
+
+                if (IsOmitSymbol)
+                {
+                    return Convert.ToDecimal(theValue).ToString("C", culture).Remove(0, 1).Trim();
+                }
+                else
+                {
+                    return Convert.ToDecimal(theValue).ToString("C", culture);
+                }
+            }
+            catch (Exception)
+            {
+                return Convert.ToString(theValue);
+            }
+        }
+        public static string ToDate(this string theValue)
+        {
+            try
+            {
+                return Convert.ToDateTime(theValue).ToString("MM/dd/yy hh:mm tt");
+            }
+            catch (Exception)
+            {
+                return Convert.ToString(theValue);
+            }
+        }
+
+        public static string AtoB(this string theValue)
+        {
+            try
+            {   
+                return Encoding.UTF8.GetString(Convert.FromBase64String(theValue));
+            }
+            catch (Exception)
+            {
+                return Convert.ToString(theValue);
+            }
+        }
+
+        public static string BtoA(this string theValue)
+        {
+            try
+            {
+                 
+                return Convert.ToBase64String(Encoding.UTF8.GetBytes(theValue)); 
+            }
+            catch (Exception)
+            {
+                return Convert.ToString(theValue);
+            }
+        }
+    }
+}
+
+
+												</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
