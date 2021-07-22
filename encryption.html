@@ -1,0 +1,269 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+  </head>
+  <body>
+    <style>
+      .navbar {
+        overflow: hidden;
+        background-color: #333;
+        position: fixed;
+        top: 0;
+        width: 100%;
+      }
+
+      .navbar a {
+        float: left;
+        display: block;
+        color: #ffffff;
+        padding: 14px 16px;
+        text-decoration: none;
+        font-size: 17px;
+        width: 100%;
+        text-align: left;
+      }
+
+      .main {
+        padding: 16px;
+        margin-top: 30px;
+        height: 1500px;
+        /* Used in this example to enable scrolling */
+      }
+    </style>
+    <nav class="navbar  navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span style="color:white" class="glyphicon glyphicon-th-list"></span>
+          </button>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li>
+              <a href="https://milansanghani88.github.io/datatablesnet/datatablesnet.html">Datareader Mapping</a>
+            </li>
+            <li>
+              <a href="https://milansanghani88.github.io/datatablesnet/extension.html">Extension</a>
+            </li>
+            <li>
+              <a href="https://milansanghani88.github.io/datatablesnet/encryption.html">Encryption</a>
+            </li>
+          </ul>
+        </div>
+        <!--/.nav-collapse -->
+      </div>
+    </nav>
+    <div class="main" style="padding:0px 6px;">
+      <div class="row">
+        <div class="col-xs-12">
+          <h3>Extension</h3>
+          <div>
+            <pre>
+public static class Encryption
+{
+    private static readonly byte[] _key = { 0x00, 0x01, 0x02, 0x03, 0x00, 0x01, 0x02, 0x03, 0x00, 0x01, 0x02, 0x03, 0x00, 0x01, 0x02, 0x03 };
+    private static readonly byte[] _iV = { 0x10, 0x11, 0x12, 0x13, 0x10, 0x11, 0x12, 0x13, 0x10, 0x11, 0x12, 0x13, 0x10, 0x11, 0x12, 0x13 };
+
+    #region Encryption
+
+    public static string CreatePasswordSalt(int saltSize)
+    {
+        try
+        {
+            RNGCryptoServiceProvider rngService = new RNGCryptoServiceProvider();
+            byte[] bufferSalt = new byte[saltSize];
+            rngService.GetBytes(bufferSalt);
+            return Convert.ToBase64String(bufferSalt);
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+
+    public static string EncryptWebSafe(string inputText)
+    {
+        try
+        {
+            return HttpUtility.HtmlEncode(Encrypt(inputText));
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+
+    public static string DecryptWebSafe(string inputText)
+    {
+        try
+        {
+            return HttpUtility.HtmlDecode(Decrypt(inputText));
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+
+    public static string Encrypt(this string inputText)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(inputText))
+                return string.Empty;
+            else
+            {
+                ASCIIEncoding textConverter = new ASCIIEncoding();
+                RijndaelManaged myRijndael = new RijndaelManaged();
+
+                ICryptoTransform encryptor = myRijndael.CreateEncryptor(_key, _iV);
+                MemoryStream msEncrypt = new MemoryStream();
+                CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write);
+                byte[] toEncrypt = textConverter.GetBytes(inputText);
+                csEncrypt.Write(toEncrypt, 0, toEncrypt.Length);
+                csEncrypt.FlushFinalBlock();
+                string encryptedstr = Convert.ToBase64String(msEncrypt.ToArray()).Replace("+", "PLSChar");
+                return encryptedstr;
+            }
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+
+    public static string Decrypt(this string inputText)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(inputText))
+                return string.Empty;
+            else
+            {
+
+                inputText = inputText.Replace("PLSChar", "+");
+                //if (inputText.Length % 4 > 0)
+                // inputText = inputText.PadRight(inputText.Length + 4 - inputText.Length % 4, '=');
+                byte[] encrypted = Convert.FromBase64String(inputText);
+                ASCIIEncoding textConverter = new ASCIIEncoding();
+                RijndaelManaged myRijndael = new RijndaelManaged();
+
+                ICryptoTransform decryptor = myRijndael.CreateDecryptor(_key, _iV);
+                MemoryStream msDecrypt = new MemoryStream(encrypted);
+                CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read);
+                byte[] fromEncrypt = new byte[encrypted.Length];
+                csDecrypt.Read(fromEncrypt, 0, fromEncrypt.Length);
+                return textConverter.GetString(fromEncrypt).TrimEnd('\x0');
+
+            }
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+
+    public static string EncryptSecureData(this string EncryptedText)
+    {
+        try
+        {
+            string _EncryptedSecureText = string.Empty;
+
+            if (string.IsNullOrEmpty(EncryptedText))
+                return string.Empty;
+            else
+            {
+                EncryptedText = Encrypt(EncryptedText);
+                String[] passwords = { "3456789", "3456789abcdefghijklmnopqrstuvwxyz=x" };
+                //var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz";
+                var random = new Random();
+                var numresult = new string(
+                    Enumerable.Repeat(passwords[0], 1)
+                              .Select(s => s[random.Next(s.Length)])
+                              .ToArray());
+                var smallresult = new string(
+                    Enumerable.Repeat(passwords[1], Convert.ToInt16(numresult))
+                              .Select(s => s[random.Next(s.Length)])
+                              .ToArray());
+
+                if (Convert.ToInt16(numresult) % 2 == 0)
+                {
+                    _EncryptedSecureText = numresult + EncryptedText + smallresult;
+                }
+                else
+                {
+                    _EncryptedSecureText = numresult + smallresult + EncryptedText;
+                }
+                return _EncryptedSecureText;
+            }
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+
+    public static string DecryptSecureData(this string EncryptedText)
+    {
+        try
+        {
+            string _DecryptedSecureText = string.Empty;
+
+            if (string.IsNullOrEmpty(EncryptedText))
+                return string.Empty;
+            else
+            {
+                var numchar = EncryptedText.Substring(0, 1);
+                int numresult = 0;
+                try
+                {
+                    numresult = Convert.ToInt16(numchar);
+                    EncryptedText = EncryptedText.Substring(1);
+                }
+                catch (Exception)
+                {
+                    return string.Empty;
+                }
+                if (numresult % 2 == 0)
+                {
+                    EncryptedText = EncryptedText.Substring(0, EncryptedText.Length - numresult);
+                }
+                else
+                {
+                    EncryptedText = EncryptedText.Substring(numresult);
+                }
+                _DecryptedSecureText = Decrypt(EncryptedText);
+
+                return _DecryptedSecureText;
+            }
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+
+    #endregion Encryption
+}
+
+</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
