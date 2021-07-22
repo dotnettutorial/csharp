@@ -84,13 +84,13 @@ public class DemoModel{
                 </div>
                 <div>
                     <pre>
-public static List< T > DataReaderMapToList<T>(IDataReader dr)
+public static List< T > DataReaderMapToList< T >(IDataReader dr)
 {
     List< T > list = new List< T >();
     T obj = default(T);
     while (dr.Read())
     {
-        obj = Activator.CreateInstance<T>();
+        obj = Activator.CreateInstance< T >();
         foreach (PropertyInfo prop in obj.GetType().GetProperties())
         {
             ExcludedAttribute MyExcluded = (ExcludedAttribute)Attribute.GetCustomAttribute(prop, typeof(ExcludedAttribute));
@@ -108,7 +108,7 @@ public static List< T > DataReaderMapToList<T>(IDataReader dr)
                     <pre>
 public List< DemoModel > GetDemoModelList(string DemoID)
 {
-    List< DemoModel > demoList = new List<DemoModel>();
+    List< DemoModel > demoList = new List< DemoModel >();
     using (SqlConnection con = new SqlConnection("connectionstring"))
     {
         using (SqlCommand cmd = new SqlCommand("usp_DemoGrid", con))
@@ -126,7 +126,7 @@ public List< DemoModel > GetDemoModelList(string DemoID)
             var noOfRecords = 0;
             using (IDataReader dataReader = cmd.ExecuteReader())
             {
-                demoList = DataReaderMapToList<DemoModel>(dataReader);
+                demoList = DataReaderMapToList< DemoModel >(dataReader);
             }
             if (cmd.Parameters["@noOfRecords"].Value != DBNull.Value)
             {
@@ -165,12 +165,12 @@ public class DemoModel{
                 </div>
                 <div>
                     <pre>
-public static T ConvertTOEntity<T>(IDataReader dr)
+public static T ConvertTOEntity< T >(IDataReader dr)
 {
     T obj = default(T);
     while (dr.Read())
     {
-        obj = Activator.CreateInstance<T>();
+        obj = Activator.CreateInstance< T >();
         foreach (PropertyInfo prop in obj.GetType().GetProperties())
         {
             ExcludedAttribute MyExcluded = (ExcludedAttribute)Attribute.GetCustomAttribute(prop, typeof(ExcludedAttribute));
@@ -205,7 +205,7 @@ public DemoModel GetDemoModelList(string DemoID)
             }
             using (IDataReader dataReader = cmd.ExecuteReader())
             {
-                demoModel = ConvertTOEntity<DemoModel>(dataReader);
+                demoModel = ConvertTOEntity< DemoModel >(dataReader);
             }
             con.Close();
             return demoModel;
@@ -236,7 +236,7 @@ public class DemoModel{
                 </div>
                 <div>
                     <pre>
-public static DataTable ListToDataTable<T>(List<T> items)
+public static DataTable ListToDataTable< T >(List< T > items)
 {
     DataTable dataTable = new DataTable(typeof(T).Name);
 
@@ -269,7 +269,7 @@ public static DataTable ListToDataTable<T>(List<T> items)
                 </div>
                 <div>
                     <pre>
-List<DataModel> dataList = new List<DataModel>();
+List< DataModel > dataList = new List< DataModel >();
 DataTable dt = new DataTable();
 dt = ListToDataTable(dataList);
 </pre>
@@ -296,7 +296,7 @@ public class DemoModel{
                 </div>
                 <div>
                     <pre>
-public static DataTable ConvertToDataTable<T>(IList<T> data)
+public static DataTable ConvertToDataTable< T >(IList< T > data)
 {
     PropertyDescriptorCollection properties = TypeDescriptor.GetProperties(typeof(T));
     DataTable table = new DataTable();
@@ -314,7 +314,7 @@ public static DataTable ConvertToDataTable<T>(IList<T> data)
                 </div>
                 <div>
                     <pre>
-IList<DataModel> dataList = new IList<DataModel>();
+IList< DataModel > dataList = new IList< DataModel >();
 DataTable dt = new DataTable();
 dt = ConvertToDataTable(dataList);
 </pre>
