@@ -1,7 +1,7 @@
-<a href="https://milansanghani88.github.io/datatablesnet/datatablesnet.html">Datareader Mapping</a>
+<a href="./datatablesnet.html">Datareader Mapping</a>
 
-<a href="https://milansanghani88.github.io/datatablesnet/extension.html">Extension</a>
+<a href="./extension.html">Extension</a>
 
-<a href="https://milansanghani88.github.io/datatablesnet/encryption.html">Extension</a>
+<a href="./encryption.html">Extension</a>
 
-<a href="https://milansanghani88.github.io/datatablesnet/commonapi.html">Common API</a>
+<a href="./commonapi.html">Common API</a>
