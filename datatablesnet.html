@@ -319,17 +319,10 @@ dt = ConvertToDataTable(dataList);
             <!-- Converting data-table to list -->
             <div class="col-xs-12" id="IListToDatatable">
                 <h3>Converting list to data-table</h3>
+
                 <div>
                     <pre>
-[System.AttributeUsage(System.AttributeTargets.Property)]
-public class ExcludedAttribute : Attribute
-{
-}
-</pre>
-                </div>
-                <div>
-                    <pre>
-public static List&lt;T&gt; ConvertDataTable&lt;T&gt;(DataTable dt)
+public static List&lt;T&gt; ConvertDataTable&lt;T&gt;(this DataTable dt)
         {
             List&lt;T&gt; data = new List&lt;T&gt;();
             foreach (DataRow row in dt.Rows)
@@ -368,6 +361,13 @@ public static List&lt;T&gt; ConvertDataTable&lt;T&gt;(DataTable dt)
             }
             return obj;
         }
+</pre>
+                </div>
+
+                <div>
+                    <pre>
+                    DataTable dt = result.Tables[0];
+                    var List = dt.ConvertDataTable<Store>();
 </pre>
                 </div>
             </div>
