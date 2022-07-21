@@ -1,0 +1,2476 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+  </head>
+  <body>
+    <style>
+      .navbar {
+        overflow: hidden;
+        background-color: #333;
+        position: fixed;
+        top: 0;
+        width: 100%;
+      }
+
+      .navbar a {
+        float: left;
+        display: block;
+        color: #ffffff;
+        padding: 14px 16px;
+        text-decoration: none;
+        font-size: 17px;
+        width: 100%;
+        text-align: left;
+      }
+
+      .main {
+        padding: 16px;
+        margin-top: 30px;
+        height: 1500px;
+        /* Used in this example to enable scrolling */
+      }
+    </style>
+    <nav class="navbar  navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span style="color:white" class="glyphicon glyphicon-th-list"></span>
+          </button>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="./datatablesnet.html">Datareader Mapping</a></li>
+                    <li><a href="./extension.html">Extension</a></li>
+                    <li><a href="./commonapi.html">Common API</a></li>
+                    <li><a href="./encryption.html">Encryption</a></li>
+
+          </ul>
+        </div>
+        <!--/.nav-collapse -->
+      </div>
+    </nav>
+    <div class="main" style="padding:0px 6px;">
+      <div class="row">
+        <div class="col-xs-12">
+          <h3>Extension</h3>
+          <div>
+            <pre>
+            
+            function GlobalSearch() {
+    this.tableId = ""; //table id
+    this.columns = []; // column defination
+    this.origColumns = []; // column defination for later use for reset columns
+    this.containerDiv = ""; // div in which search is appended
+    this.appliedSearch = []; // contains columns in which search is applied
+    this.UseManualSearchButton = false; // true if manual search button should be visible
+    this.BindGlobalSearch = function ({ tblId = 'tblGrid', searchColumns, containerDiv = 'divGridSearch', UseManualSearchButton = false }) {
+        this.tableId = "#" + tblId;
+        this.columns = searchColumns;
+        this.origColumns = searchColumns.map(function (x) { return $.extend(true, {}, x); });
+        this.containerDiv = "#" + containerDiv;
+        this.UseManualSearchButton = UseManualSearchButton;
+        this.createSearch();
+        if ($(this.containerDiv).find(".applyDefaultStoredFilter").length &gt; 0)
+            $(this.containerDiv).find(".applyDefaultStoredFilter").click();
+        return this;
+    };
+    this.createSearch = function () {
+        this.appliedSearch = [];
+
+        var columns = this.columns;
+        $.each(this.columns, function (i, v) {
+            if (columns.find(x =&gt; x.part2name == v.name || (x.default == null && x.part1name == v.name) || (x.OtherParts && x.OtherParts.length &gt; 0 && x.OtherParts.map(function (y) { return y.name }).indexOf(v.name) != -1)) && v.type != "2partlookup")
+                v.isBind = true;
+            if (v.type == "daterange")
+                v.type = "date";
+            if (v.type.split("|")[0] == "multiselect" && v.type.split("|").length == 2) {
+                var splitted = v.type.split("|");
+                v.type = "multiselect";
+                v.enumName = splitted[1];
+            }
+            delete (v.parentsearch);
+        });
+
+        $(this.containerDiv).html(this.searchHTML.replaceAll("{{tableID}}", this.tableId.replace("#", "")));
+        //bind the filter which has property default true
+        this.createDefaultFilters();
+        //bind the preferred filter which has property preferred true
+        var preferred = this.columns.filter(function (x) { return x.preferred == true && x.type != 'boolean' && x.isBind != true })
+        this.createPreferredFilters();
+        //bind the filter which has type boolean
+        var additional = this.columns.filter(function (x) { return x.type == 'boolean' && x.isBind != true })
+        this.createAdditonalFilters();
+        //bind all the remaining filter
+        this.createAllFilters();
+        this.bindSavedSearches();
+
+        //if there is no preferred and additional filter bind all the filter to first accordian
+        if (preferred.length == 0 && additional.length == 0) {
+            $(this.containerDiv).find(".preferredElement").replaceWith($(this.containerDiv).find(".otherElements"));
+            $(this.containerDiv).find("#accordionSeeAll" + this.tableId.replace("#", "")).hide();
+        }
+
+        if (this.UseManualSearchButton) {
+            $(this.containerDiv).find(".manual-search-button").removeClass("d-none");
+        }
+
+        flatpickr('.datepickerGrid', {
+            enableTime: false,
+            dateFormat: "m-d-Y",
+            errorHandler: function (e) {
+                //placeholder text throws the error so for now we just hide the errors
+                //console.log('flatpickr error: ' + e);
+            }
+        });
+        this.bindEvent();
+    };
+    this.createDefaultFilters = function () {
+        var $this = this;
+        var defaults = this.columns.filter(function (x) { return x.default != null })
+        defaults.forEach(function (value, index) {
+            filterObj = value;
+            if (value.default.split("|").length &gt; 1) {
+                filterObj.filterValue = value.default.split("|")[1];
+                filterObj.filterType = value.default.split("|")[0];
+            }
+            else {
+                filterObj.filterValue = value.default;
+                filterObj.filterType = "e";
+            }
+            if (value.type == "multiselectcustom" && filterObj.filterValue != '') {
+                filterObj.filterValue = filterObj.filterValue.split(',');
+            }
+
+            if (filterObj.type == "2partlookup")
+                $this.bindDependantSearch(filterObj);
+            value.isBind = true;
+            $this.applyFilter(null, filterObj, false);
+
+        });
+
+    };
+    this.createPreferredFilters = function () {
+        var $this = this;
+        var preferred = this.columns.filter(function (x) { return x.preferred == true && x.type != 'boolean' && x.isBind != true })
+        preferred.forEach(function (value, index) {
+            if ($this.isParentChild(value))
+                $this.bindDependantSearch(value, ".preferredElement");
+            else {
+                filterObj = value;
+                var html = $this.getHtmlForPreferredFilter(filterObj);
+                $($this.containerDiv).find(".preferredElement").append(html);
+            }
+            value.isBind = true;
+        });
+    };
+    this.createAdditonalFilters = function () {
+        var $this = this;
+        var additional = this.columns.filter(function (x) { return x.type == 'boolean' && x.isBind != true })
+        additional.forEach(function (value, index) {
+            filterObj = value;
+            var html = $this.additionalItemHTML.replace("{{ColumnName}}", filterObj.title).replaceAll("{{target}}", filterObj.target);
+            html = $(html);
+            html.find("#columnObj").val($this.stringifyColumnObject(filterObj));
+            $($this.containerDiv).find(".additionalElement").append(html);
+            value.isBind = true;
+        });
+    };
+    this.createAllFilters = function () {
+        var $this = this;
+        var additional = this.columns.filter(function (x) { return x.isBind != true })
+        additional.forEach(function (value, index) {
+            if ($this.isParentChild(value))
+                $this.bindDependantSearch(value, ".otherElements");
+            else {
+                filterObj = value;
+                var html = $this.getHtmlForPreferredFilter(filterObj);
+                $($this.containerDiv).find(".otherElements").append(html);
+            }
+            value.isBind = true;
+        });
+    };
+    this.bindEvent = function () {
+        var that = this;
+
+        $('.accordion-collapse-advanced').on('show.bs.collapse', function (e) {
+            if ($(e.target).parents(".accordion-collapse-advanced").length == 0)
+                $(that.containerDiv).children(":first").addClass('bg-gray-100');
+        });
+
+        $('.accordion-collapse-advanced').on('hide.bs.collapse', function (e) {
+            if ($(e.target).parents(".accordion-collapse-advanced").length == 0)
+                $(that.containerDiv).children(":first").removeClass('bg-gray-100');
+        });
+
+        $(this.tableId + "-save").on('show.bs.modal', function (e) {
+            $(this).find("#txtSearchName").val("");
+            $(this).find(".modalFormFooterResponseMessageBar").parent().remove();
+        });
+
+        $(this.containerDiv).find(".lereta-form-label .dropdown-toggle").off().on("click", function () {
+            $(that.containerDiv).find(".dropdown-menu").hide();
+            $(this).siblings(".dropdown-menu").toggle();
+        });
+
+        $(this.containerDiv).find(".lereta-form-label .dropdown-item").off().on("click", function () {
+            $(this).parents(".dropdown-menu").siblings(".dropdown-toggle").html($(this).text().trim());
+            $(this).parents(".dropdown").find("#filter-type").val($(this).data("value"));
+            //Based on selected type show input box when type is date
+            if ($(this).data("value") == "b") {
+                $(this).parents(".lereta-form-label").siblings(".filter-start").removeClass("col-sm-12").addClass("col-sm-6");
+                $(this).parents(".lereta-form-label").siblings(".filter-end").removeClass("d-none");
+            }
+            else {
+                $(this).parents(".lereta-form-label").siblings(".filter-start").removeClass("col-sm-6").addClass("col-sm-12");
+                $(this).parents(".lereta-form-label").siblings(".filter-end").addClass("d-none");
+            }
+        });
+
+        $(this.containerDiv).find("#SaveButton").off().on("click", function () {
+            $(that.tableId + "-save").modal("show");
+        });
+
+        //Save Filters
+        $(this.tableId + "_saveFilter").off().on("click", function (e) {
+            var $this = $(this);
+            var filterName = $this.parents(".modal-content").find("#txtSearchName").val();
+            if (filterName == "") {
+                var infoText = `&lt;div class="w-100 m-0"&gt;&lt;div class="slideupbar-notification modalFormFooterResponseMessageBar" id="modalFormFooterResponseMessageBarContainer"&gt;&lt;div class="alert alert-danger alert-dismissible fade show fw-bold" role="alert"&gt; &lt;span class="iconify alert-icon" data-icon="ri:alert-line" data-inline="false"&gt;&lt;/span&gt;Please enter name&lt;button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"&gt;&lt;/button&gt; &lt;/div&gt;&lt;/div&gt;&lt;/div&gt;`;
+                //now, since it's a modal, go up in the DOM to locate the modal-footer container DIV, which is needed to know where to put the error messages
+                $this.closest('.modal-footer').prepend(infoText);
+                e.stopImmediatePropagation();
+                return false;
+            }
+            else if (that.appliedSearch.length &gt; 0) {
+                startLoadingBtn($this, "Saving");
+                var storedValue = localStorage.getItem(window.location.pathname + "_" + that.tableId.replace("#", "") + "_search");
+                var storedFilter = storedValue == null ? {} : JSON.parse(storedValue);
+
+                if (storedFilter[filterName]) {
+                    GlobalShowMessageBox({
+                        MessageBoxTitle: 'Warning',
+                        MessageTitle: 'The search name already exists so old one is overwritten.',
+                        MessageSubtext: '',
+                        IsUrgent: true,
+                        MainButtonText: 'Ok',
+                        MainButtonClickEvent: function () { },
+                        ShowCancelButton: true
+                    });
+                }
+                storedFilter[filterName] = that.appliedSearch;
+                localStorage.setItem(window.location.pathname + "_" + that.tableId.replace("#", "") + "_search", JSON.stringify(storedFilter));
+            }
+            else {
+                var infoText = `&lt;div class="w-100 m-0"&gt;&lt;div class="slideupbar-notification modalFormFooterResponseMessageBar" id="modalFormFooterResponseMessageBarContainer"&gt;&lt;div class="alert alert-danger alert-dismissible fade show fw-bold" role="alert"&gt; &lt;span class="iconify alert-icon" data-icon="ri:alert-line" data-inline="false"&gt;&lt;/span&gt;No Filter Applied&lt;button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"&gt;&lt;/button&gt; &lt;/div&gt;&lt;/div&gt;&lt;/div&gt;`;
+                //now, since it's a modal, go up in the DOM to locate the modal-footer container DIV, which is needed to know where to put the error messages
+                $this.closest('.modal-footer').prepend(infoText);
+            }
+            setTimeout(function () {
+                stopLoadingBtn($this);
+                $this.parents('.modal:first').modal('hide');
+                $("#txtSearchName").val("");
+            }, 1000);
+            that.bindSavedSearches();
+            that.bindEvent();
+        });
+
+        //clear filter
+        $(this.tableId + "_clearFilter").off().on("click", function () {
+            that.columns = that.origColumns.map(function (x) { return $.extend(true, {}, x); });
+            that.createSearch();
+            if ($(that.containerDiv).find(".applyDefaultStoredFilter").find(".removeStoredFilter").length &gt; 0) {
+                $(that.tableId).DataTable().state.clear();
+                $(that.containerDiv).find(".applyDefaultStoredFilter").find(".removeStoredFilter").click();
+            }
+            $(that.tableId).DataTable().ajax.reload();
+        });
+
+        //on click event of div that are simple(not parent child search) & is a default filter
+        $(this.containerDiv).find(".lereta-search-pill:not(.2part-search-value)").off().on("click", function (e) {
+            e.stopImmediatePropagation();
+            if ($(e.target).hasClass("lereta-search-pill") || e.target.tagName == "B") {
+                var filter = $(this);
+                var column = JSON.parse(filter.find("#columnObj").val());
+                if (that.isDisabled(column)) {
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    return false;
+                }
+                column = that.columns.find(x =&gt; x.name == column.name && x.target == column.target);
+                that.openPopup(this, column);
+                var search = that.appliedSearch.find(x =&gt; x.name == column.name && x.target == column.target)
+                if (search != null && typeof search != "undefined") {
+                    filter.find(".value-selection-popup .filter-selection").find('option').map(function () {
+                        if ($(this).text() == search.filterType) return this;
+                    }).attr('selected', 'selected');
+                    filter.find(".value-selection-popup .filter-value").val(search.filterValue);
+                    if (search.filterValue.indexOf("&") &gt; 0 && $(this).find(".value-selection-popup .filter-value1").length &gt; 0) {
+                        if (search.filterType == "Between")
+                            $(this).find(".value-selection-popup .nextdate").show();
+                        $(this).find(".value-selection-popup .filter-value").val(search.filterValue.split("&")[0]);
+                        $(this).find(".value-selection-popup .filter-value1").val(search.filterValue.split("&")[1]);
+                    }
+                }
+                $('.lereta-search-pill').tooltip('hide');
+
+                if ($(this).find(".value-selection-popup .filter-value").length &gt; 0)
+                    $(this).find(".value-selection-popup .filter-value").focus().select();
+            }
+        });
+
+        //click of cross icon in the applied filter that are default and show at the top of the search
+        $(this.containerDiv).find(".lereta-search-pill .remove-filter").off().on("click clicknoreload", function (e) {
+            e.stopImmediatePropagation();
+            var column = JSON.parse($(this).parents(".lereta-search-pill").find("#columnObj").val());
+            var tag = that.createTagHTML(column.title, column);
+            if (column.type == "2partlookup") tag.addClass("2part-search-value");
+            tag.addClass("bg-gray-350");
+            tag.find(".remove-filter").remove();
+            $(this).parents(".lereta-search-pill").replaceWith(tag);
+            that.appliedSearch = that.appliedSearch.filter(function (x) { return !(x.name == column.name && x.target == column.target) })
+            if (column.type == "2partlookup") {
+                that.appliedSearch = that.appliedSearch.filter(function (x) { return !(x.name == (column.part1name + "2PartSearchValue") || (x.name == column.part2name + "2PartSearchValue")) })
+            }
+            $('.tooltip').remove();
+
+            that.showHideActionButton();
+            that.bindEvent();
+            if (!that.UseManualSearchButton && e.type == "click") {
+                that.saveDefaultStoredFilter(that);
+                $(that.tableId).DataTable().ajax.reload();
+            }
+        });
+
+        //on click event for open popup for multipart search
+        $(this.containerDiv).find(".2part-search-value").off().on("click", function (e) {
+            e.stopPropagation();
+            var column = JSON.parse($(this).find("#columnObj").val());
+            that.openPopup(this, column);
+
+            search = that.appliedSearch.filter(x =&gt; x.name == column.part1name + "2PartSearchValue" || x.name == column.part2name + "2PartSearchValue");
+            var $this = $(this);
+
+            setTimeout(() =&gt; {
+                $(this).find(".LERETAIconPartTwo").off().on("click", function (e) {
+                    e.stopPropagation();
+                    if ($(this).parent().siblings("input").hasClass("filter-value")) {
+                        $this.find(".value-selection-popup #part1Value").val("");
+                        $this.find(".value-selection-popup .filter-value").val("").focus();
+                        $this.find(".value-selection-popup .childinput").val("").attr("disabled", true);
+                        $this.find(".value-selection-popup #part2Value").val("");
+                        $this.find(".value-selection-popup .childvalue").val("")
+                    }
+                    else if ($(this).parent().siblings("input").hasClass("filter-value1")) {
+                        $this.find(".value-selection-popup #part2Value").val("");
+                        $this.find(".value-selection-popup .filter-value1").val("").focus();
+                    }
+                    else {
+                        var input = $(this).parent().siblings("input.childinput");
+                        $("#" + input.attr("data-name")).val("");
+                        input.val("").focus();
+                    }
+                });
+            }, 100);
+
+            //if it is edit then bind the autocomplete for child and parent
+            if (search.length &gt; 0) {
+                var parent = that.appliedSearch.find(x =&gt; x.name == column.part1name + "2PartSearchValue");
+                var child = that.appliedSearch.find(x =&gt; x.name == column.part2name + "2PartSearchValue");
+
+                $(this).find(".value-selection-popup #part1Value").val(parent.filterValue);
+                if (child)
+                    $(this).find(".value-selection-popup #part2Value").val(child.filterValue);
+
+                if (column.part1.split("|")[0] == "Enumeration") {
+                    var enm = GlobalEnums[column.part1.split("|")[1]];
+                    $(this).find(".value-selection-popup .filter-value").val(Object.keys(enm).find(key =&gt; enm[key] == parent.filterValue));
+                }
+                else {
+                    if (column.part1type == "multiselectcustom")
+                        $(this).find(".value-selection-popup .filter-value").val(parent.filterValue);
+                    else
+                        $(this).find(".value-selection-popup .filter-value").val(parent.autoCompleteValue);
+                }
+                if (child) {
+                    if (column.part2.split("|")[0] == "Enumeration") {
+                        var enm = GlobalEnums[column.part2.split("|")[1]];
+                        $(this).find(".value-selection-popup .filter-value1").val(Object.keys(enm).find(key =&gt; enm[key] == child.filterValue));
+                    }
+                    else
+                        $(this).find(".value-selection-popup .filter-value1").val(child.autoCompleteValue);
+                }
+
+                var isJsFunction = column.part2.split("|")[0] == "localJS";
+                var part2 = column.part2;
+                if (!isJsFunction)
+                    part2 = part2 + encodeURIComponent(parent.filterValue)
+                $(this).find(".value-selection-popup .childinput").removeAttr("disabled");
+                that.bindAutocomplete($(this).find(".value-selection-popup .filter-value1"), part2, column.part2DownArrowShowAllItems, function (item2) {
+                    if (item2) {
+                        $this.find(".value-selection-popup #part2Value").val(item2.text || item2.Text);
+                    }
+                    else
+                        $this.find(".value-selection-popup #part2Value").val("");
+
+                }, encodeURIComponent(parent.filterValue));
+
+                var isOtherPartPresent = column.OtherParts && column.OtherParts.length &gt; 0;
+                if (isOtherPartPresent) {
+                    var otherParts = column.OtherParts;
+                    $.each(otherParts, function (i, v) {
+                        var partColumn = that.appliedSearch.find(x =&gt; x.name == this.name + "2PartSearchValue");
+                        if (partColumn) {
+                            $this.find("#" + this.name).val(partColumn.filterValue);
+                            if (this.Url.split("|")[0] == "Enumeration") {
+                                var enm = GlobalEnums[this.Url.split("|")[1]];
+                                $this.find(".value-selection-popup ." + this.name).val(Object.keys(enm).find(key =&gt; enm[key] == partColumn.filterValue));
+                            }
+                            else
+                                $this.find(".value-selection-popup ." + this.name).val(partColumn.filterValue);
+                        }
+                        var isJsFunction = this.Url.split("|")[0] == "localJS";
+                        var url = this.Url;
+                        if (!isJsFunction)
+                            url = url + encodeURIComponent(parent.filterValue);
+                        that.bindAutocomplete($this.find(".value-selection-popup ." + this.name), url, this.DownArrowShowAllItems, function (item) {
+                            if (item) {
+                                $this.find(".value-selection-popup #" + v.name).val(item.text || item.Text);
+                                //$this.find(".popup-body").find(".btn-apply").click();
+                            }
+                            else
+                                $this.find(".value-selection-popup #" + v.name).val("");
+
+                        }, encodeURIComponent(parent.filterValue));
+                    });
+                }
+            }
+            if (column.part1type == "multiselectcustom") {
+                //bind the multiselectcustom for parent
+                var $select = $this.find(".value-selection-popup .filter-value");
+                var url = column.part1;
+                var isJsFunction = url.split("|")[0] == "localJS";
+                var isEnum = url.split("|")[0] == "Enumeration";
+                url = url.split("|")[1];
+                if (isJsFunction) {
+                    var arr = window[url]();
+                    $.each(arr, function (i, v) {
+                        $select.append(new Option(v.text || v.Text, v.value || v.Value));
+                    })
+                }
+                //get the data from enums in globalenum.js
+                else if (isEnum) {
+                    var enm = GlobalEnums[url]
+                    $.each(Object.keys(enm), function (i, v) {
+                        $select.append(new Option(v, enm[v]));
+                    })
+                }
+                //get the data from Web service
+                else {
+                    $.ajax({
+                        type: "GET",
+                        url: url + (url.indexOf("?") != -1 ? "&" : "?") + "term=''",//it automcatically append the teram
+                        contentType: "application/json; charset=utf-8",
+                        dataType: "json",
+                        success: function (suggestion) {
+                            if (suggestion) {
+                                //map suggestion to exect structure for dropdown
+                                suggestion = suggestion.map(function (x) {
+                                    return { text: (x.text || x.Text), value: (x.value || x.Value) };
+                                });
+
+                                $.each(suggestion, function (i, v) {
+                                    $select.append(new Option(v.text || v.Text, v.value || v.Value));
+                                })
+                            }
+                        }
+                    });
+                }
+                setTimeout(function () {
+                    $select.select2({
+                        closeOnSelect: false,
+                        dropdownCssClass: "Select2MultipleBadge"
+                    }).on("select2:open", function (e) {
+                        setTimeout(function () {
+                            var aria = $this.find(".2partMultiSelect-popup").find("span.select2-selection").attr("aria-owns");
+                            var listOptions = $("#" + aria + " li");
+                            var width = listOptions.first().height();
+
+                            $.each(listOptions, function (i, v) {
+                                if (width &lt; $(this).width())
+                                    width = $(this).width();
+                            });
+
+                            $("#" + aria + " li").width(width);
+                        });
+                    });
+                    $select.on('change', function (e) {
+                        const $select = $(this);
+                        const numSelected = $select.select2('data').length;
+                        $select.next('span.select2').find('ul').html(function () {
+                            return `&lt;li class="select2-selection__choice"&gt;${numSelected} selected&lt;/li&gt;`;
+                        });
+
+                        //On selection of parent bind the autocomplete of child
+                        if ($select.val().length == 0) {
+                            $this.find(".value-selection-popup .childinput").val("").attr("disabled", true);
+                            return;
+                        }
+                        $this.find(".value-selection-popup .filter-value").val($select.val());
+                        //there can be three ways to fetch value
+                        //1)from the function which returns array of value
+                        //2)Webservice
+                        //3)Enumeration in globalEnum.js
+                        var isJsFunction = column.part2.split("|")[0] == "localJS";
+                        var isEnum = column.part1.split("|")[0] == "Enumeration";
+                        var part2 = column.part2;
+                        if (!isJsFunction)
+                            part2 = part2 + encodeURIComponent($select.val().join(','));
+                        $this.find(".value-selection-popup #part1Value").val($select.val());
+                        $this.find(".value-selection-popup .childinput").removeAttr("disabled");
+
+                        $this.find(".value-selection-popup .childvalue").val("");
+                        $this.find(".value-selection-popup .childinput").val("").first().focus();
+                        //bind the autocomplete for childs
+                        that.bindAutocomplete($this.find(".value-selection-popup .filter-value1"), part2, column.part2DownArrowShowAllItems, function (item2) {
+                            if (item2) {
+                                $this.find(".value-selection-popup .filter-value1").val(item2.text || item2.Text);
+                                $this.find(".value-selection-popup #part2Value").val(item2.value || item2.Value);
+                                //$this.find(".popup-body").find(".btn-apply").click();
+                            }
+                            else {
+                                $this.find(".value-selection-popup .filter-value1").val("");
+                                $this.find(".value-selection-popup #part2Value").val("");
+                            }
+
+                        }, encodeURIComponent($select.val().join(',')));
+
+                        var isOtherPartPresent = column.OtherParts && column.OtherParts.length &gt; 0;
+                        //if there is more then one childs, bind the autocomplete for that
+                        if (isOtherPartPresent) {
+                            var otherParts = column.OtherParts;
+                            $.each(otherParts, function (i, v) {
+                                var url = this.Url;
+                                if (!isJsFunction)
+                                    url = url + encodeURIComponent($select.val().join(','));//(isEnum ? item.text : item.value)
+                                that.bindAutocomplete($this.find(".value-selection-popup ." + this.name), url, this.DownArrowShowAllItems, function (item) {
+                                    if (item) {
+                                        $this.find(".value-selection-popup ." + v.name).val(item.text || item.Text);
+                                        //$this.find(".popup-body").find(".btn-apply").click();
+                                    }
+                                    else
+                                        $this.find(".value-selection-popup ." + v.name).val("");
+
+                                }, encodeURIComponent($select.val().join(',')));
+                            });
+                        }
+
+                    });
+                    $select.on('select2:select', function (e) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        return false;
+                    });
+
+                    const numSelected = $select.select2('data').length;
+                    $select.next('span.select2').find('ul').html(function () {
+                        return `&lt;li class="select2-selection__choice"&gt;${numSelected} selected&lt;/li&gt;`;
+                    })
+                })
+
+                if ($this.find(".value-selection-popup #part1Value").val().length &gt; 0) {
+                    var filterValue = $this.find(".value-selection-popup #part1Value").val().split(',');
+                    $this.find(".value-selection-popup .filter-selection").find('option').map(function () {
+                        if ($(this).text() == "In") return this;
+                    }).attr('selected', 'selected');
+                    $this.find(".value-selection-popup .filter-value").val(filterValue);
+                }
+            }
+            else {
+                //bind the autocomplete for parent
+                that.bindAutocomplete($this.find(".value-selection-popup .filter-value"), column.part1, column.part1DownArrowShowAllItems, function (item) {
+                    //On selection of parent bind the autocomplete of child
+                    if (item == null) {
+                        $this.find(".value-selection-popup .childinput").attr("disabled", true);
+                        return;
+                    }
+                    $this.find(".value-selection-popup .filter-value").val(item.text || item.Text);
+                    //there can be three ways to fetch value
+                    //1)from the function which returns array of value
+                    //2)Webservice
+                    //3)Enumeration in globalEnum.js
+                    var isJsFunction = column.part2.split("|")[0] == "localJS";
+                    var isEnum = column.part1.split("|")[0] == "Enumeration";
+                    var part2 = column.part2;
+                    if (!isJsFunction)
+                        part2 = part2 + (isEnum ? item.text : item.value)
+                    $this.find(".value-selection-popup #part1Value").val(isEnum ? item.text : item.value || item.Value);
+                    $this.find(".value-selection-popup .childinput").removeAttr("disabled");
+
+                    $this.find(".value-selection-popup .childvalue").val("");
+                    $this.find(".value-selection-popup .childinput").val("").first().focus();
+                    //bind the autocomplete for childs
+                    that.bindAutocomplete($this.find(".value-selection-popup .filter-value1"), part2, column.part2DownArrowShowAllItems, function (item2) {
+                        if (item2) {
+                            $this.find(".value-selection-popup .filter-value1").val(item2.text || item2.Text);
+                            $this.find(".value-selection-popup #part2Value").val(item2.value || item2.Value);
+                            //$this.find(".popup-body").find(".btn-apply").click();
+                        }
+                        else {
+                            $this.find(".value-selection-popup .filter-value1").val("");
+                            $this.find(".value-selection-popup #part2Value").val("");
+                        }
+
+                    }, (isEnum ? item.text : item.value || item.Value));
+
+                    var isOtherPartPresent = column.OtherParts && column.OtherParts.length &gt; 0;
+                    //if there is more then one childs, bind the autocomplete for that
+                    if (isOtherPartPresent) {
+                        var otherParts = column.OtherParts;
+                        $.each(otherParts, function (i, v) {
+                            var url = this.Url;
+                            if (!isJsFunction)
+                                url = url + (isEnum ? item.text : item.value)
+                            that.bindAutocomplete($this.find(".value-selection-popup ." + this.name), url, this.DownArrowShowAllItems, function (item) {
+                                if (item) {
+                                    $this.find(".value-selection-popup ." + v.name).val(item.text || item.Text);
+                                    //$this.find(".popup-body").find(".btn-apply").click();
+                                }
+                                else
+                                    $this.find(".value-selection-popup ." + v.name).val("");
+
+                            }, (isEnum ? item.text : item.value));
+                        });
+                    }
+                });
+            }
+
+            $this.find(".value-selection-popup .filter-value").focus().select()
+        });
+
+        //click of switch for boolean filter it has 3 state 1)ignore(default) 2)Off 3)On
+        $(this.containerDiv).find(".form-switch .form-check-input").off().on("change", function () {
+            var columnObj = JSON.parse($(this).parents(".switch-button").find("#columnObj").val());
+            if (!$(this).hasClass("state-ignore") && $(this).is(":checked")) {
+                $(this).prop("checked", false);
+                $(this).siblings("label").html("");
+                $(this).addClass("state-ignore");
+                that.appliedSearch = that.appliedSearch.filter(function (x) { return !(x.name == columnObj.name && x.target == columnObj.target) });
+            }
+            else {
+                $(this).removeClass("state-ignore");
+                $(this).siblings("label").html($(this).is(":checked") ? "Yes" : "No");
+                if (!that.appliedSearch.find(x =&gt; x.name == columnObj.name && x.target == columnObj.target))
+                    that.appliedSearch.push(that.columns.find(x =&gt; x.name == columnObj.name && x.target == columnObj.target));
+                that.appliedSearch.find(x =&gt; x.name == columnObj.name && x.target == columnObj.target).filterType = "EqualTo";;
+                that.appliedSearch.find(x =&gt; x.name == columnObj.name && x.target == columnObj.target).filterValue = $(this).is(":checked") ? true : false;
+            }
+        });
+
+        $(this.containerDiv).find(".applyStoredFilter").off().on("click", function () { that.applyStoredFilter(this) });
+        $(this.containerDiv).find(".removeStoredFilter").off().on("click", function (e) { that.removeStoredFilter(this, e) });
+        $(this.containerDiv).find(".applyDefaultStoredFilter").off().on("click", function () { that.applyStoredFilter(this, false);/*Param2: false - Not reload grid data*/ });
+
+        //Apply search button on the bottom-right
+        $(this.containerDiv).find("#GridSearchApply").off().on("click", function () {
+            that.applySearch();
+        });
+        //Apply search On Manual search button click
+        $(this.containerDiv).find("#manual-search-button").off().on("click", function () {
+            that.applySearch();
+        });
+
+        var dependant = this.columns.filter(function (x) { return x.dependancy != null }).map(x =&gt; x.dependancy.control);
+        var dependancy = this.columns.filter(function (x) { return x.default == null && dependant.indexOf(x.name) != -1 })
+        $.each(dependancy, function (i, v) {
+            var element = null;
+            if ($(that.containerDiv).find("." + that.specialToASCII(v.name)).find("select").length &gt; 0) {
+                element = $(that.containerDiv).find("." + that.specialToASCII(v.name)).find("select");
+            }
+            else if ($(that.containerDiv).find("." + that.specialToASCII(v.name)).find("input[type='text']").length &gt; 0) {
+                element = $(that.containerDiv).find("." + that.specialToASCII(v.name)).find("input[type='text']");
+            }
+            if (element != null) {
+                $(element).change(function () { that.findDependantAndTakeAction(v, $(this).val()) });
+            }
+        })
+
+        //Cancel search button on the bottom-right - reset all the applied search
+        $(this.containerDiv).find("#GridSearchCancel").off().on("click", function () {
+            that.appliedSearch = that.appliedSearch.filter(function (x) { return x.type == "boolean" || x.default != null });
+            $.each($(that.containerDiv).find(".grid-search-input"), function () {
+                if ($(this).find("select").length &gt; 0)
+                    $(this).find("select").val("").trigger("change");
+                else if ($(this).find("input[type!='hidden']").length &gt; 0)
+                    $(this).find("input[type!='hidden']").val("");
+            });
+            $("[id*='switch']").removeClass("state-ignore");
+            $("[id*='switch']").prop("checked", false);
+            $("[id*='switch']").click();
+            if ($(that.containerDiv).find(".applyDefaultStoredFilter").find(".removeStoredFilter").length &gt; 0) {
+                $(that.tableId).DataTable().state.clear();
+                $(that.containerDiv).find(".applyDefaultStoredFilter").find(".removeStoredFilter").click();
+            }
+            $(that.tableId).DataTable().ajax.reload();
+            $(that.containerDiv).find(".collapse").collapse("hide");
+            that.showHideActionButton();
+        });
+    };
+    this.saveDefaultStoredFilter = function (currentThis) {
+        var filterName = currentThis.tableId.replace('#', '') + "_____DefaultSaveFilter";
+        if (currentThis.appliedSearch.length &gt; 0) {
+            var storedValue = localStorage.getItem(window.location.pathname + "_" + currentThis.tableId.replace("#", "") + "_search");
+            var storedFilter = storedValue == null ? {} : JSON.parse(storedValue);
+
+            if (storedFilter[filterName]) {
+                storedFilter[filterName] = null;
+            }
+            storedFilter[filterName] = currentThis.appliedSearch;
+            localStorage.setItem(window.location.pathname + "_" + currentThis.tableId.replace("#", "") + "_search", JSON.stringify(storedFilter));
+            currentThis.bindSavedSearches();
+            currentThis.bindEvent();
+        }
+        else {
+            if ($(currentThis.containerDiv).find(".applyDefaultStoredFilter").find(".removeStoredFilter").length &gt; 0)
+                $(currentThis.containerDiv).find(".applyDefaultStoredFilter").find(".removeStoredFilter").click();
+        }
+    };
+    //opens value selection popup
+    //Opens popup with the default configuration based on type
+    this.openPopup = function (element, columnObj = null) {
+        var column = columnObj;
+        if (columnObj == null)
+            column = JSON.parse($(element).prev().find("#columnObj").val());
+        column = this.columns.find(x =&gt; x.name == column.name && x.target == column.target);
+        var that = this;
+        var $this = $(element);
+        $(".dropdown-menu.value-selection-popup").remove();
+        var popupElement = null;
+        if (column.type == "number") {
+            $this.append(this.numberPopupHTML.replace("{{ColumnName}}", column.title));
+            popupElement = $this.find(".number-popup").show();
+            if (column.maxSearchLength) {
+                var input = popupElement.find("input[type=number]")
+                input.attr("maxlength", column.maxSearchLength);
+                input.attr("oninput", "javascript: if (this.value.length &gt; this.maxLength) this.value = this.value.slice(0, this.maxLength);");
+            }
+        }
+        else if (column.type == "boolean") {
+            $this.append(this.booleanPopupHTML.replace("{{ColumnName}}", column.title));
+            popupElement = $this.find(".boolean-popup").show();
+        }
+        else if (column.type == "string") {
+            $this.append(this.stringPopupHTML.replace("{{ColumnName}}", column.title));
+            popupElement = $this.find(".string-popup").show();
+            if (column.maxSearchLength) {
+                var input = popupElement.find("input[type=text]")
+                input.attr("maxlength", column.maxSearchLength);
+            }
+        }
+        else if (column.type == "date") {
+            $this.append(this.datePopupHTML.replace("{{ColumnName}}", column.title));
+            popupElement = $this.find(".date-popup").show();
+            popupElement.find(".nextdate").hide();
+            popupElement.find(".filter-selection").off().on("change", function () {
+                if ($(this).val() == "b")
+                    popupElement.find(".nextdate").show();
+                else
+                    popupElement.find(".nextdate").hide();
+            });
+            flatpickr('.datepickerGrid', {
+                enableTime: false,
+                dateFormat: "m-d-Y",
+                errorHandler: function (e) {
+                    //placeholder text throws the error so for now we just hide the errors
+                    //console.log('flatpickr error: ' + e);
+                }
+            });
+        }
+        else if (column.type == "select") {
+            $this.append(this.selectOrEnumPopupHTMl.replace("{{ColumnName}}", column.title));
+            var options = $.map($(this.tableId).DataTable().rows().data(), function (item) {
+                return item[column.name || column.target] ? item[column.name || column.target].toString().replace(/(&lt;([^&gt;
+    ]+)&gt;)/ig, '') : "";
+    });
+    options = Array.from(new Set(options));
+
+    var popupElement = $this.find(".select-popup").show();
+    var $select = popupElement.find(".filter-value")
+    if (column.dataFunction) {
+    var arr = typeof column.dataFunction == "function" ? column.dataFunction() : window[column.dataFunction]();
+    $.each(arr, function (i, v) {
+    $select.append(new Option(v.text || v.Text, v.value || v.Value));
+    })
+    }
+    else {
+    $.each(options, function (i, v) {
+    $select.append(new Option(v, v));
+    })
+    }
+    }
+    else if (column.type == "multiselect") {
+    $this.append(this.multiSelectPopupHtml.replace("{{ColumnName}}", column.title));
+    var popupElement = $this.find(".multiselect-popup").show();
+    var $select = popupElement.find(".filter-value")
+    if (column.dataFunction) {
+    var arr = typeof column.dataFunction == "function" ? column.dataFunction() : window[column.dataFunction]();
+    $.each(arr, function (i, v) {
+    $select.append(new Option(v.text || v.Text, v.value || v.Value));
+    })
+    }
+    else if (column.enumName) {
+    var enm = GlobalEnums[column.enumName]
+    $.each(Object.keys(enm), function (i, v) {
+    $select.append(new Option(v, enm[v]));
+    })
+    }
+    setTimeout(function () {
+    $(".filter-value").select2({
+    closeOnSelect: false,
+    dropdownCssClass: "lereta-multiselect"
+    });
+    $('.filter-value').on('select2:select', function (e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    return false;
+    });
+    })
+    }
+    else if (column.type == "multiselectcustom") {
+    $this.append(this.multiSelectCustom.replace("{{ColumnName}}", column.title));
+    var popupElement = $this.find(".multiselectcustom-popup").show();
+    var $select = popupElement.find(".filter-value")
+    if (column.dataFunction) {
+    var arr = typeof column.dataFunction == "function" ? column.dataFunction() : window[column.dataFunction]();
+    $.each(arr, function (i, v) {
+    $select.append(new Option(v.text || v.Text, v.value || v.Value));
+    })
+    }
+    else if (column.enumName) {
+    var enm = GlobalEnums[column.enumName]
+    $.each(Object.keys(enm), function (i, v) {
+    $select.append(new Option(v, enm[v]));
+    })
+    }
+    setTimeout(function () {
+    $select.select2({
+    closeOnSelect: false,
+    dropdownCssClass: "Select2MultipleBadge"
+    }).on("select2:open", function (e) {
+    setTimeout(function () {
+    var aria = popupElement.find("span.select2-selection").attr("aria-owns");
+    var listOptions = $("#" + aria + " li");
+    var width = listOptions.first().height();
+
+    $.each(listOptions, function (i, v) {
+    if (width &lt; $(this).width())
+    width = $(this).width();
+    });
+
+    $("#" + aria + " li").width(width);
+    });
+    });
+    $select.on('change', function (e) {
+    const $select = $(this);
+    const numSelected = $select.select2('data').length;
+    $select.next('span.select2').find('ul').html(function () {
+    return `&lt;li class="select2-selection__choice"&gt;${numSelected} selected&lt;/li&gt;`;
+    })
+    });
+    $select.on('select2:select', function (e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    return false;
+    });
+    const numSelected = $select.select2('data').length;
+    $select.next('span.select2').find('ul').html(function () {
+    return `&lt;li class="select2-selection__choice"&gt;${numSelected} selected&lt;/li&gt;`;
+    })
+    })
+    }
+    else if (column.type == "daterange") {
+    $this.append(this.dateRangePopupHTML.replace("{{ColumnName}}", column.title));
+    var popupElement = $this.find(".daterange-popup").show();
+    flatpickr('.datepickerGrid', {
+    enableTime: false,
+    dateFormat: "m-d-Y",
+    errorHandler: function (e) {
+    //placeholder text throws the error so for now we just hide the errors
+    //console.log('flatpickr error: ' + e);
+    }
+    });
+    }
+    else if (column.type.indexOf("enumeration") == 0) {
+    $this.append(this.selectOrEnumPopupHTMl.replace("{{ColumnName}}", column.title));
+
+    var enumName = column.type.split("|")[1];
+    var popupElement = $this.find(".select-popup").show();
+    var $select = popupElement.find(".filter-value")
+    var enm = GlobalEnums[enumName]
+    var sortEnm = {};
+    Object.keys(enm).sort().forEach(a =&gt; sortEnm[a] = enm[a]);
+    $.each(Object.keys(sortEnm), function (i, v) {
+    $select.append(new Option(v, sortEnm[v]));
+    })
+    }
+    else if (column.type == "autocomplete") {
+    $this.append(this.autocompletePopupHTML.replace("{{ColumnName}}", column.title));
+
+    var popupElement = $this.find(".autocomplete-popup").show();
+    setTimeout(function () {
+    that.bindAutocomplete($this.find(".value-selection-popup .filter-value"), column.dataFunction, column.DownArrowShowAllItems, function (item) {
+    if (item == null) {
+    return;
+    }
+    var isJsFunction = column.dataFunction.split("|")[0] == "localJS";
+    var isEnum = column.dataFunction.split("|")[0] == "Enumeration";
+    $this.find(".value-selection-popup #filter-value").val((!isEnum) ? item.text : item.value || item.Value);
+    });
+    $this.find(".value-selection-popup .filter-value").focus().select();
+    });
+
+    }
+    else if (column.type == "2partlookup") {
+    var partHtml, popupClass;
+    if (column.part1type == "multiselectcustom") {
+    partHtml = this.partMultiSelectPopupHTML;
+    popupClass = ".2partMultiSelect-popup";
+    }
+    else {
+    partHtml = this.partPopupHTML;
+    popupClass = ".2part-popup";
+    }
+    $this.append(partHtml.replace("{{ColumnName}}", column.title));
+    var popupElement = $this.find(popupClass).show();
+    var isOtherPartPresent = columnObj.OtherParts && columnObj.OtherParts.length &gt; 0;
+    if (isOtherPartPresent) {
+    var element = popupElement.find(".filter-value1").parent().clone();
+    element.find(".filter-value1").removeClass("filter-value1");
+    var container = $(".popup-body");
+    var otherParts = this.columns.filter(function (x) { return column.OtherParts.map(function (y) { return y.name }).indexOf(x.name) != -1 });
+    otherParts = otherParts.map(function (x) { return $.extend(true, {}, x); })
+    $.each(otherParts.reverse(), function (i, v) {
+    var newelement = element.clone();
+    newelement.find('input').attr("placeholder", this.title + "...").attr("data-name", this.name).addClass(this.name);
+    newelement.find('input').attr("disabled", true);
+    container.append("&lt;input type='hidden' class='childvalue' id='" + this.name + "'&gt;");
+    popupElement.find(".filter-value1").parent().after(newelement);
+    });
+    }
+    if (column.part1type == undefined || column.part1type != "multiselectcustom") {
+    popupElement.find(".filter-value").attr("placeholder", column.part1name + "...")
+    }
+    popupElement.find(".filter-value1").attr("placeholder", column.part2name + "...")
+    popupElement.find(".filter-value1").attr("disabled", true);
+    }
+    popupElement.find("#columnObj").val(that.stringifyColumnObject(column));
+    $('.dropdown-menu').click(function (e) {
+    if (!$(e.target).hasClass("LERETAIconPartTwo"))
+    e.stopPropagation();
+    });
+    $(".filter-value").off().keypress(function (e) {
+    if (e.keyCode == 13)
+    $(this).parents(".popup-body").find(".btn-apply").click();
+    });
+    if (popupElement != null) {
+    popupElement.find("input[type='text']").on("blur", function () { $(this).val($(this).val().trim()) })
+    popupElement.find(".btn-cancel").off().on("click", function (e) { e.stopPropagation(); $(this).parents('.dropdown-menu').remove(); });
+    popupElement.find(".btn-apply").off().on("click", function (e) {
+    e.stopPropagation();
+    if (that.columns.filter(function (x) { return x.dependancy && x.dependancy.control == column.name }))
+    that.findDependantAndTakeAction(column, $(this).parents(".popup-body").find(".filter-value").val());
+    that.applyFilter(this, null, $(this).parents(".lereta-search-pill").length &gt; 0);
+    });
+    }
+    };
+    //function called when apply is click in the value selection popup
+    this.applyFilter = function (element, filterObj, reloadGrid) {
+    let columnObj = filterObj;
+    if (element != null)
+    columnObj = JSON.parse($(element).parents(".dropdown-menu").find("#columnObj").val());
+    let popupType = this.getPopupType(columnObj.type, columnObj.part1type);
+    var filterValue = $(element).parents("." + popupType + "-popup").find(".filter-value").val();
+    var filterType = $(element).parents("." + popupType + "-popup").find(".filter-selection").val();
+
+    if (element == null && filterObj != null) {
+    columnObj = filterObj;
+    filterValue = filterObj.filterValue;
+    filterType = filterObj.filterType;
+    }
+    //if value is empty then clear the search
+    if (element != null && !filterValue && columnObj.type != "2partlookup") {
+    this.appliedSearch = this.appliedSearch.filter(function (x) { return !(x.target == columnObj.target && x.name == columnObj.name) });
+    $(element).parents(".grid-search-columnvalue").html("").siblings(".clear-icon").addClass("d-none");
+    return false;
+    }
+    //for type date if filter type is beetween and todate is not selected then give the error
+    if (element != null && filterValue && columnObj.type == "date" && filterType == "b") {
+    var filterValue1 = $(element).parents("." + popupType + "-popup").find(".filter-value1").val();
+    if (new Date(filterValue) &gt; new Date(filterValue1)) {
+    $(element).parents("." + popupType + "-popup").find(".filter-value1").addClass("is-invalid");
+    return false;
+    }
+    }
+
+    var description = "";
+    var isEdit = this.appliedSearch.filter(function (obj) { return obj.name == columnObj.name }).length &gt; 0;
+
+    columnObj.filterValue = filterValue;
+    columnObj.filterType = filterType;
+    //if value is empty then clear the search
+    if (filterValue == "" && columnObj.default == "" && $(element).parents("." + popupType + "-popup").length == 0) {
+    description = columnObj.title;
+    var tag = this.createTagHTML(description, columnObj);
+    if (columnObj.type == "2partlookup") tag.addClass("2part-search-value");
+    tag.addClass("bg-gray-350");
+    tag.find(".remove-filter").remove();
+    $(this.containerDiv).find(".lereta-grid-search .LERETAIconMain").after(tag);
+    return;
+    }
+    else if (columnObj.default == "") {
+    isEdit = true;
+    //if has default value passed directly apply search
+    if (columnObj.type != "2partlookup") {
+    var search = this.appliedSearch.find(x =&gt; x.name == columnObj.name && x.target == columnObj.target)
+    if (search == null || typeof search == "undefined") {
+    this.appliedSearch.push(columnObj);
+    }
+    }
+    }
+    //Configuration for defferent types
+    if (columnObj.type == "select" && columnObj.dataFunction) {
+    var arr = typeof columnObj.dataFunction == "function" ? columnObj.dataFunction() : window[columnObj.dataFunction]();
+    columnObj.filterType = this.getSelectedTypeStringForAPI(filterType);
+    this.appliedSearch.push(columnObj);
+    var selectedObj = arr.find(x =&gt; (x.value || x.Value) == filterValue);
+    description = columnObj.title + " is&nbsp;&lt;b&gt;" + (selectedObj.text || selectedObj.Text) + "&lt;/b&gt;";
+    }
+    else if ((columnObj.type == "multiselect" || columnObj.type == "multiselectcustom")) {
+    if (columnObj.dataFunction) {
+    var arr = typeof columnObj.dataFunction == "function" ? columnObj.dataFunction() : window[columnObj.dataFunction]();
+    filterType = columnObj.filterType = "In";
+    var selectedObj = arr.filter(x =&gt; filterValue.indexOf(x.value || x.Value) != -1);
+    filterValue = selectedObj.map(function (obj) { return (obj.text || obj.Text) }).join(",");
+    if (columnObj.type == "multiselectcustom")
+    description = columnObj.name + " In&nbsp;&lt;b&gt;" + selectedObj.length + " selected options(s)" + "&lt;/b&gt;";
+    else
+    description = columnObj.name + " In&nbsp;&lt;b&gt;" + selectedObj.map(function (obj) { return (obj.text || obj.Text) }).join(",") + "&lt;/b&gt;";
+    }
+    else if (columnObj.enumName) {
+    filterType = columnObj.filterType = "In";
+    var enm = GlobalEnums[columnObj.enumName]
+    var selectedObj = [];
+    $.each(filterValue, function (i, v) {
+    selectedObj.push(Object.keys(enm).find(key =&gt; enm[key] == v));
+    });
+    filterValue = selectedObj.join(",");
+    if (columnObj.type == "multiselectcustom")
+    description = columnObj.name + " In&nbsp;&lt;b&gt;" + selectedObj.length + " selected options(s)" + "&lt;/b&gt;";
+    else
+    description = columnObj.name + " In&nbsp;&lt;b&gt;" + selectedObj.join(","); + "&lt;/b&gt;";
+    }
+    this.appliedSearch.push(columnObj);
+
+    }
+    else if (columnObj.type == "date") {
+    var filterValue1 = $(element).parents("." + popupType + "-popup").find(".filter-value1").val();
+
+    if (filterType == "b") {
+    if (element == null && filterObj != null) {
+    filterValue1 = filterValue.split("&")[1];
+    columnObj.filterValue = filterValue = filterValue.split("&")[0];
+    }
+    columnObj.filterType = "Between";
+    filterType = "b";
+    description = columnObj.title + " Between&nbsp;&lt;b&gt;" + filterValue + " & " + filterValue1 + "&lt;/b&gt;";
+    columnObj.filterValue += "&" + filterValue1;
+    filterValue += "&" + filterValue1;
+    this.appliedSearch.push(columnObj);
+    }
+    else {
+    columnObj.filterType = this.getSelectedTypeStringForAPI(filterType);
+    this.appliedSearch.push(columnObj);
+    description = columnObj.title + " " + this.getSelectedTypeStringForDescription(filterType) + "&nbsp;&lt;b&gt;" + filterValue + "&lt;/b&gt;";
+    }
+    }
+    else if (columnObj.type.indexOf("enumeration") == 0) {
+    columnObj.filterType = this.getSelectedTypeStringForAPI(filterType);
+    this.appliedSearch.push(columnObj);
+    var enumName = columnObj.type.split("|")[1];
+    var enm = GlobalEnums[enumName]
+    description = columnObj.title + " is&nbsp;&lt;b&gt;" + Object.keys(enm).find(key =&gt; enm[key] == filterValue); + "&lt;/b&gt;";
+    }
+    else if (columnObj.type == "autocomplete") {
+    filterValue = columnObj.filterValue = $(element).parents("." + popupType + "-popup").find("#filter-value").val();;
+    columnObj.filterType = "EqualTo";
+    this.appliedSearch.push(columnObj);
+    var isEnum = columnObj.dataFunction.split("|")[0] == "Enumeration";
+    if (isEnum) {
+    var enumName = columnObj.dataFunction.split("|")[1];
+    var enm = GlobalEnums[enumName]
+    description = columnObj.title + " is&nbsp;&lt;b&gt;" + Object.keys(enm).find(key =&gt; enm[key] == filterValue); + "&lt;/b&gt;";
+    }
+    else {
+    var arr = window[columnObj.dataFunction.split("|")[1]]();
+    var selectedObj = arr.find(x =&gt; (x.value || x.Value) == filterValue);
+    description = columnObj.name + " is&nbsp;&lt;b&gt;" + (selectedObj.text || selectedObj.Text) + "&lt;/b&gt;";
+    }
+    }
+    else if (columnObj.type == "2partlookup") {
+    var that = this;
+    var parent = this.columns.find(x =&gt; x.name == columnObj.part1name + "2PartSearchValue");
+    var child = this.columns.find(x =&gt; x.name == columnObj.part2name + "2PartSearchValue");
+    if (columnObj.part1type == "multiselectcustom") {
+    parent.filterType = "In";
+    child.filterType = "EqualTo";
+    }
+    else
+    parent.filterType = child.filterType = "EqualTo";
+    parent.autoCompleteValue = $(element).parents("." + popupType + "-popup").find(".filter-value").val();
+    parent.filterValue = $(element).parents("." + popupType + "-popup").find("#part1Value").val();
+    child.autoCompleteValue = $(element).parents("." + popupType + "-popup").find(".filter-value1").val();
+    child.filterValue = $(element).parents("." + popupType + "-popup").find("#part2Value").val();
+    if (columnObj.part1Value != null && columnObj.part2Value != null) {
+    parent.filterValue = columnObj.part1Value;
+    child.filterValue = columnObj.part2Value;
+    }
+    var isOtherPartPresent = columnObj.OtherParts && columnObj.OtherParts.length &gt; 0;
+    var PartValuesPresent = false;
+    var otherParts;
+    if (isOtherPartPresent) {
+    otherParts = columnObj.OtherParts;
+    $.each(otherParts, function (i, v) {
+    v.filterValue = $(element).parents("." + popupType + "-popup").find("#" + v.name).val();
+    PartValuesPresent = PartValuesPresent || (v.filterValue ? true : false);
+    });
+    }
+
+    if (parent.filterValue && !child.filterValue && !PartValuesPresent) {
+    $(element).parents("." + popupType + "-popup").find(".childinput").addClass("is-invalid");
+    return;
+    }
+
+    //for part search update the filter and discription in the div
+    if (!parent.filterValue || (!child.filterValue && !PartValuesPresent)) {
+
+    this.appliedSearch = this.appliedSearch.filter(function (x) { return !(x.target == parent.target && x.name == parent.name) });
+    this.appliedSearch = this.appliedSearch.filter(function (x) { return !(x.target == child.target && x.name == child.name) });
+    description = columnObj.title;
+    $(element).parents(".lereta-search-pill").replaceWith(this.createTagHTML(description, columnObj).addClass("2part-search-value"));
+
+    if (isOtherPartPresent) {
+    $.each(otherParts, function (i, v) {
+    var partColumn = that.columns.find(x =&gt; x.name == v.name + "2PartSearchValue");
+    that.appliedSearch = that.appliedSearch.filter(function (x) { return !(x.target == partColumn.target && x.name == partColumn.name) });
+    });
+    }
+    }
+    else {
+    this.addOrUpdateColumns(parent);
+    if (child.filterValue) {
+    this.addOrUpdateColumns(child);
+    }
+    description = "";
+
+    if (columnObj.part1type == "multiselectcustom")
+    description = columnObj.part1name + " In&nbsp;&lt;b&gt;" + parent.filterValue.split(',').length + " selected options(s)" + "&lt;/b&gt;";
+    else
+    description += this.getDescriptionFromColumn(parent, columnObj.part1);
+
+    description += " & ";
+    if (child.filterValue) {
+    description += this.getDescriptionFromColumn(child, columnObj.part2);
+    }
+    else {
+    this.appliedSearch = this.appliedSearch.filter(function (x) { return !(x.target == child.target && x.name == child.name) });
+    }
+    if (isOtherPartPresent) {
+    $.each(otherParts, function (i, v) {
+    var partColumn = that.columns.find(x =&gt; x.name == v.name + "2PartSearchValue");
+    that.addOrUpdateColumns(parent);
+    if (v.filterValue) {
+    partColumn.filterValue = v.filterValue;
+    partColumn.filterType = "EqualTo";
+    that.addOrUpdateColumns(partColumn);
+    description += that.getDescriptionFromColumn(partColumn, v.Url);
+    }
+    else {
+    that.appliedSearch = that.appliedSearch.filter(function (x) { return !(x.target == partColumn.target && x.name == partColumn.name) });
+    }
+    });
+    }
+    if (element == null) {
+    if (columnObj.title && columnObj.title.indexOf('&') &gt; -1)
+    $(this.containerDiv).find(".lereta-search-pill.2part-search-value." + this.specialToASCII(columnObj.title.split('&')[0])).replaceWith(this.createTagHTML(description, columnObj).addClass("2part-search-value"));
+    else
+    $(this.containerDiv).find(".lereta-search-pill.2part-search-value." + this.specialToASCII(columnObj.title)).replaceWith(this.createTagHTML(description, columnObj).addClass("2part-search-value"));
+    }
+    else
+    $(element).parents(".lereta-search-pill").replaceWith(this.createTagHTML(description, columnObj).addClass("2part-search-value"));
+    }
+    }
+    else {
+    columnObj.filterType = this.getSelectedTypeStringForAPI(filterType);
+    this.appliedSearch.push(columnObj);
+    description = columnObj.title + " " + this.getSelectedTypeStringForDescription(filterType) + "&nbsp;&lt;b&gt;" + filterValue + "&lt;/b&gt;";
+    }
+
+    if (columnObj.type != "2partlookup") {
+    if (isEdit && columnObj.default != null) {
+    var current = this.appliedSearch.pop();
+    this.appliedSearch = this.appliedSearch.map(function (e) {
+    if (e.name == columnObj.name)
+    return current;
+    else
+    return e;
+    });
+    if (element == null)
+    $(this.containerDiv).find(".lereta-search-pill." + this.specialToASCII(columnObj.name)).replaceWith(this.createTagHTML(description, columnObj));
+    else
+    $(element).parents(".lereta-search-pill").replaceWith(this.createTagHTML(description, columnObj));
+    }
+    else {
+    if (element == null) {
+    if ($(this.containerDiv).find(".lereta-search-pill." + this.specialToASCII(columnObj.name)).length &gt; 0)
+    $(this.containerDiv).find(".lereta-search-pill." + this.specialToASCII(columnObj.name)).replaceWith(this.createTagHTML(description, columnObj));
+    else
+    $(this.containerDiv).find(".lereta-grid-search .LERETAIconMain").after(this.createTagHTML(description, columnObj));
+    }
+    else if ($(element).parents(".lereta-search-pill").length &gt; 0) {
+    $(element).parents(".lereta-search-pill").replaceWith(this.createTagHTML(description, columnObj));
+    }
+    }
+    }
+    $(this.containerDiv).find("." + popupType + "-popup").remove();
+    //Reload Grid if reloadGrid parameter is true Ignore if grid should not reload automatically.
+    if (reloadGrid && !this.UseManualSearchButton) {
+    this.saveDefaultStoredFilter(this);
+    $(this.tableId).DataTable().ajax.reload();
+    }
+
+    this.showHideActionButton();
+
+    this.bindEvent();
+    $('.tooltip').remove();
+
+    };
+    this.addOrUpdateColumns = function (column) {
+    var index = this.appliedSearch.indexOf(this.appliedSearch.find(x =&gt; x.name == column.name && x.target == column.target));
+    if (index != -1) {
+    this.appliedSearch[index] = column;
+    }
+    else
+    this.appliedSearch.push(column);
+    };
+    this.getDescriptionFromColumn = function (column, Url) {
+    if (Url.split("|")[0] == "Enumeration") {
+    var enm = GlobalEnums[Url.split("|")[1]];
+    return column.title.replace("2PartSearchValue", "") + " is &lt;b&gt;" + Object.keys(enm).find(key =&gt; enm[key] == column.filterValue) + "&lt;/b&gt;";
+    }
+    else {
+    return column.title.replace("2PartSearchValue", "") + " is &lt;b&gt;" + (column.autoCompleteValue || column.filterValue) + "&lt;/b&gt;";
+    }
+    };
+    this.getPopupType = function (type, parttype) {
+    if (type.indexOf("enumeration") == 0)
+    return 'select';
+    if (type == "2partlookup") {
+    if (parttype && parttype == "multiselectcustom")
+    return '2partMultiSelect';
+    return '2part'
+    }
+    return type;
+    };
+    this.getSelectedTypeStringForAPI = function (selectedType) {
+    switch (selectedType) {
+    case 'e':
+    return 'EqualTo'
+    break;
+    case 'g':
+    return 'GreaterThan'
+    break;
+    case 'l':
+    return 'LessThen'
+    break;
+    case 'c':
+    return 'Contains'
+    break;
+    case 'b':
+    return 'Between'
+    break;
+    case 'n':
+    return 'NotEqualTo'
+    break;
+    case 'In':
+    return 'In'
+    break;
+    default:
+    return 'EqualTo'
+    break;
+    }
+    };
+    this.getShortType = function (selectedType) {
+    switch (selectedType) {
+    case 'EqualTo':
+    return 'e'
+    break;
+    case 'GreaterThan':
+    return 'g'
+    break;
+    case 'LessThen':
+    return 'l'
+    break;
+    case 'Contains':
+    return 'c'
+    break;
+    case 'Between':
+    return 'b'
+    break;
+    case 'NotEqualTo':
+    return 'n'
+    break;
+    case 'In':
+    return 'In'
+    break;
+    default:
+    return 'e'
+    break;
+    }
+    };
+    this.getSelectedTypeStringForDescription = function (selectedType) {
+    switch (selectedType) {
+    case 'e':
+    return 'is'
+    break;
+    case 'g':
+    return '&gt;'
+    break;
+    case 'l':
+    return '&lt;'
+    break;
+    case 'c':
+    return 'Contains'
+    break;
+    case 'b':
+    case 'Between':
+    return 'Between'
+    break;
+    case 'In':
+    return 'In'
+    break;
+    case 'n':
+    return 'not'
+    break;
+    default:
+    return 'is'
+    break;
+    }
+    };
+    this.getSymbolForDescription = function (selectedType) {
+    switch (selectedType) {
+    case 'e':
+    return '='
+    break;
+    case 'g':
+    return '&gt;'
+    break;
+    case 'l':
+    return '&lt;'
+    break;
+    case 'c':
+    return 'Contains'
+    break;
+    case 'b':
+    case 'Between':
+    return 'Between'
+    break;
+    case 'n':
+    return '!='
+    break;
+    case 'In':
+    return 'In'
+    break;
+    default:
+    return '='
+    break;
+    }
+    };
+    this.getHtmlForPreferredFilter = function (filterObj) {
+    var dropdownItems = []
+    var html = this.preferredItemHtml.replaceAll("{{ColumnName}}", filterObj.title)
+    html = $(html);
+    if (filterObj.type == "number") {
+    dropdownItems = [{ value: "e", text: "Equals" }, { value: "n", text: "Is Not Equal To" }, { value: "g", text: "Is Greater Than" }, { value: "l", text: "Is Less Than" }]
+    html.find("input[type='text']").attr("type", "number");
+    }
+    else if (filterObj.type == "string") {
+    dropdownItems = [{ value: "c", text: "Contains" }, { value: "i", text: "Is" }];
+    }
+    else if (filterObj.type == "select" || filterObj.type.indexOf("enumeration") == 0) {
+    dropdownItems = [{ value: "i", text: "Is" }, { value: "c", text: "Contains" }];
+    }
+    else if (filterObj.type == "date") {
+    dropdownItems = [{ value: "e", text: "On" }, { value: "g", text: "After" }, { value: "l", text: "Before" }, { value: "b", text: "Between" }]
+    }
+    else if (filterObj.type == "multiselect" || filterObj.type == "multiselectcustom") {
+    dropdownItems = [{ value: "In", text: "In" }]
+    }
+    else
+    dropdownItems = [{ value: "i", text: "Is" }];
+    html.find(".form-control").attr("name", filterObj.name);
+    if (filterObj.type == "select" || filterObj.type.indexOf("enumeration") == 0) {
+    html.find("input[type=text]").replaceWith("&lt;select class='form-select' name='" + filterObj.name + "'&gt;&lt;/select&gt;");
+    var $select = html.find("select");
+    $select.append(new Option('', ''));
+    if (filterObj.dataFunction && filterObj.type == "select") {
+    var arr = typeof filterObj.dataFunction == "function" ? filterObj.dataFunction() : window[filterObj.dataFunction]();
+    $.each(arr, function (i, v) {
+    $select.append(new Option(v.text || v.Text, v.value || v.Value));
+    })
+    }
+    else if (filterObj.type.indexOf("enumeration") == 0) {
+    var enumName = filterObj.type.split("|")[1];
+    var enm = GlobalEnums[enumName]
+    $.each(Object.keys(enm), function (i, v) {
+    $select.append(new Option(v, enm[v]));
+    })
+    }
+    }
+    else if (filterObj.type == "date") {
+    html.find("input[type=text]").replaceWith(this.daterangeInputHtml);
+    html.children(":first").addClass("row");
+    }
+    else if (filterObj.type == "multiselect" || filterObj.type == "multiselectcustom") {
+    html.find("input[type=text]").replaceWith("&lt;select class='form-select select2-multiple' name='" + filterObj.name + "' multiple='multiple'&gt;&lt;/select&gt;");
+    var $select = html.find("select");
+    if (filterObj.dataFunction) {
+    var arr = typeof filterObj.dataFunction == "function" ? filterObj.dataFunction() : window[filterObj.dataFunction]();
+    $.each(arr, function (i, v) {
+    $select.append(new Option(v.text || v.Text, v.value || v.Value));
+    })
+    }
+    else if (filterObj.enumName) {
+    var enm = GlobalEnums[filterObj.enumName]
+    $.each(Object.keys(enm), function (i, v) {
+    $select.append(new Option(v, enm[v]));
+    })
+    }
+    setTimeout(function () {
+    if (filterObj.type == "multiselectcustom") {
+    $select.select2({
+    closeOnSelect: false,
+    dropdownCssClass: "Select2MultipleBadge"
+    }).on("select2:open", function (e) {
+    setTimeout(function () {
+    var aria = html.find("span.select2-selection").attr("aria-owns");
+    var listOptions = $("#" + aria + " li");
+    var width = listOptions.first().height();
+
+    $.each(listOptions, function (i, v) {
+    if (width &lt; $(this).width())
+    width = $(this).width();
+    });
+
+    $("#" + aria + " li").width(width);
+    });
+    });
+
+    $select.on('change', function (e) {
+    const $select = $(this);
+    const numSelected = $select.select2('data').length;
+    $select.next('span.select2').find('ul').html(function () {
+    return `&lt;li class="select2-selection__choice"&gt;${numSelected} selected&lt;/li&gt;`;
+    })
+    });
+    const numSelected = $select.select2('data').length;
+    $select.next('span.select2').find('ul').html(function () {
+    return `&lt;li class="select2-selection__choice"&gt;${numSelected} selected&lt;/li&gt;`;
+    })
+    }
+    else {
+    $select.select2({
+    closeOnSelect: false,
+    dropdownCssClass: "lereta-multiselect"
+    });
+    }
+
+    $select.on('select2:select', function (e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    return false;
+    });
+    })
+    }
+    else if (filterObj.type == "autocomplete") {
+    this.bindAutocomplete(html.find("input[type=text]"), filterObj.dataFunction, filterObj.DownArrowShowAllItems, function (item) {
+    if (item == null) {
+    return;
+    }
+    var isJsFunction = filterObj.dataFunction.split("|")[0] == "localJS";
+    var isEnum = filterObj.dataFunction.split("|")[0] == "Enumeration";
+    html.find("input[type=text]").val((!isEnum) ? item.text : item.value || item.Value);
+    });
+    }
+
+    // Add Maxlength if it is defined in columndefination and if filter is type of number and string
+    if (filterObj.type == "string" || filterObj.type == "number") {
+    if (filterObj.maxSearchLength) {
+    var input = html.find("input[type=text]")
+    if (input.length == 0 || filterObj.type == "number") input = html.find("input[type=number]");
+    input.attr("maxlength", filterObj.maxSearchLength);
+
+    if (filterObj.type == "number") {
+    input.attr("oninput", "javascript: if (this.value.length &gt; this.maxLength) this.value = this.value.slice(0, this.maxLength);");
+    }
+    }
+    }
+
+    html.find(".dropdown-menu").html('');
+    $.each(dropdownItems, function (i, v) {
+    html.find(".dropdown-menu").append('&lt;a class="dropdown-item" href="javascript:void(0)" data-value="' + v.value + '"&gt;' + v.text + '&lt;/a&gt;');
+    })
+    html.find(".dropdown-toggle").html(dropdownItems[0].text);
+    html.find("#filter-type").val(dropdownItems[0].value);
+    html.find("#columnObj").val(this.stringifyColumnObject(filterObj));
+    html.addClass(this.specialToASCII(filterObj.name));
+    if (this.isDisabled(filterObj))
+    html.find("input[type='text']").attr("disabled", "disabled");
+    return html;
+    };
+    this.getHtmlForParentChildFilter = function (filterObj) {
+    var dropdownItems = []
+    var html = this.preferredItemHtml.replaceAll("{{ColumnName}}", filterObj.title)
+    html = $(html);
+    if (filterObj.type == "multiselectcustom")
+    dropdownItems = [{ value: "In", text: "In" }];
+    else
+    dropdownItems = [{ value: "e", text: "Equals" }];
+    html.find(".dropdown-menu").html('');
+    $.each(dropdownItems, function (i, v) {
+    html.find(".dropdown-menu").append('&lt;a class="dropdown-item" href="javascript:void(0)" data-value="' + v.value + '"&gt;' + v.text + '&lt;/a&gt;');
+    })
+    html.find(".form-control").attr("name", filterObj.name);
+    html.find(".dropdown-toggle").html(dropdownItems[0].text);
+    html.find("#filter-type").val(dropdownItems[0].value);
+    html.find("#columnObj").val(this.stringifyColumnObject(filterObj));
+    html.addClass(this.specialToASCII(filterObj.name));
+    return html;
+    };
+    //Apply filter that are stored in localstorage based on selection from the right side
+    this.applyStoredFilter = function (element, isReloadGrid = true) {
+    var value = JSON.parse(atob($(element).data().value));
+    var that = this;
+    $.each(that.columns, function (i, v) {
+    v.isBind = false;
+    });
+    that.columns = that.origColumns.map(function (x) { return $.extend(true, {}, x); });
+    that.createSearch();
+
+    //Remove Default Search
+    $(that.containerDiv).find(".lereta-search-pill .remove-filter").trigger("clicknoreload");
+
+    var partColumns = value.filter(function (x) { return x.name.indexOf("2PartSearchValue") != -1 });
+    var partSearch = [];
+    $.each(partColumns, function (index, column) {
+    var partCol = that.columns.filter(function (x) { return x.type == "2partlookup" && x.default != null && ((x.part1name == column.name.replace("2PartSearchValue", "") && x.part1target == column.target) || (x.part2name == column.name.replace("2PartSearchValue", "") && x.part2target == column.target)) });
+    if (partCol.length &gt; 0 && partSearch.filter(function (x) { return x.name == partCol[0].name && x.target == partCol[0].target }).length == 0) {
+    partSearch.push(partCol[0]);
+    }
+    });
+    if (partSearch.length &gt; 0) {
+    $.each(partSearch, function (index, column) {
+    var parent = value.find(x =&gt; x.name == column.part1name + "2PartSearchValue" && x.target == column.part1target);
+    var child = value.find(x =&gt; x.name == column.part2name + "2PartSearchValue" && x.target == column.part2target);
+    column.part1Value = parent.filterValue;
+    column.part2Value = child.filterValue;
+    value = value.filter(function (x) { return !(x.name == column.part1name + "2PartSearchValue" && x.target == column.part1target) })
+    value = value.filter(function (x) { return !(x.name == column.part2name + "2PartSearchValue" && x.target == column.part2target) })
+    value.push(column);
+    });
+    }
+
+    $.each(value, function (index, column) {
+    columnObject = that.columns.find(x =&gt; x.name == column.name && x.target == column.target);
+    if(columnObject != undefined){
+    columnObject.filterType = column.filterType;
+    columnObject.filterValue = column.filterValue;
+    if (column.autoCompleteValue)
+    columnObject.autoCompleteValue = column.autoCompleteValue;
+
+    if (columnObject.type == "2partlookup") {
+    columnObject = column;
+    columnObject.filterValue = column.part1Value + ", " + column.part2Value;
+    }
+
+    if (columnObject.default != null) {
+    if (columnObject.type != "2partlookup")
+    columnObject.default = column.filterType + columnObject.filterValue;
+    that.applyFilter(null, columnObject, false);
+    }
+    else if (columnObject.type == "boolean") {
+    $("#switch" + columnObject.target).prop("checked", columnObject.filterValue).change();
+    }
+    else {
+    that.appliedSearch.push(columnObject);
+    var childs = that.columns.filter(function (x) { return x.parentObj == columnObject.name });
+    if (childs.length &gt; 0) {
+    var valueToDisplay = columnObject.filterValue;
+    if ($("[name='" + columnObject.name + "']").hasClass("ui-autocomplete-input")) {
+    valueToDisplay = columnObject.autoCompleteValue;
+    $("[name='" + columnObject.name + "']").siblings("#hdnAutocompleteValue").val(columnObject.filterValue);
+    }
+    $("[name='" + columnObject.name + "']").val(valueToDisplay);
+
+    $.each(childs, function (i, v) {
+    var isJsFunction = v.Url.split("|")[0] == "localJS";
+    var Url = v.Url;
+    if (!isJsFunction)
+    Url = Url + columnObject.filterValue;
+    $(that.containerDiv).find("input[name='" + v.name + "']").removeAttr("disabled");
+    that.bindAutocomplete($(that.containerDiv).find("input[name='" + v.name + "']"), Url, v.DownArrowShowAllItems, function (item2) {
+    if (item2) {
+    $(that.containerDiv).find("input[name='" + v.name + "']").val(item2.text || item2.Text);
+    }
+    else {
+    that.containerDiv.find("input[name='" + v.name + "']").val("");
+    }
+    }, columnObject.filterValue);
+    });
+    }
+    else if (columnObject.type == "date") {
+    var container = $("." + that.specialToASCII(columnObject.name));
+    $(container).find(".filter-value").val(columnObject.filterValue.split("&")[0]);
+    if (columnObject.filterType == "Between") {
+    container.find(".filter-start").removeClass("col-sm-12").addClass("col-sm-6");
+    container.find(".filter-end").removeClass("d-none");
+    container.find(".filter-value1").val(columnObject.filterValue.split("&")[1]);
+    }
+    }
+    else {
+    var valueToDisplay = columnObject.filterValue;
+    if ($("[name='" + columnObject.name + "']").hasClass("ui-autocomplete-input")) {
+    valueToDisplay = columnObject.autoCompleteValue;
+    $("[name='" + columnObject.name + "']").siblings("#hdnAutocompleteValue").val(columnObject.filterValue);
+    }
+    $("[name='" + columnObject.name + "']").val(valueToDisplay);
+    }
+    $(that.containerDiv).find("." + that.specialToASCII(columnObject.name)).find(".dropdown-toggle").html(columnObject.filterType);
+    $(that.containerDiv).find("." + that.specialToASCII(columnObject.name)).find("#filter-type").val(that.getShortType(columnObject.filterType));
+    }
+    }
+    });
+
+    var defaultColumn = this.columns.filter(function (x) {
+    return x.default != null && that.appliedSearch.filter(function (obj) { return obj.name == x.name && obj.target == x.target }).length == 0;
+    });
+    //$.each(defaultColumn, function () {
+    //    this.default = "";
+    //    this.filterValue = this.default;
+    //    this.filterType = "e";
+    //    that.applyFilter(null, this, false);
+    //});
+    if (isReloadGrid) {
+    this.saveDefaultStoredFilter(this);
+    $(this.tableId).DataTable().ajax.reload();
+    }
+    };
+    //function to remove stored filter from recent and all filters
+    this.removeStoredFilter = function (element, e) {
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    var storedValue = localStorage.getItem(window.location.pathname + "_" + this.tableId.replace("#", "") + "_search");
+    var storedFilter = storedValue == null ? {} : JSON.parse(storedValue);
+    var obj = $(element).data().text;
+    if ($(element).data().isrecent == true) {
+    storedFilter[obj + "~removedRecent"] = $.extend(true, {}, storedFilter[obj]);
+    }
+    delete storedFilter[obj];
+    localStorage.setItem(window.location.pathname + "_" + this.tableId.replace("#", "") + "_search", JSON.stringify(storedFilter));
+    this.bindSavedSearches();
+    this.bindEvent();
+    };
+    //On Apply it applies the selected search and refresh the grid based on search
+    this.applySearch = function () {
+    var that = this;
+    var reload = true;
+    this.appliedSearch = this.appliedSearch.filter(function (obj) { return obj.default != null || obj.type == 'boolean' });
+    $.each($(this.containerDiv).find(".grid-search-input"), function (index, divElement) {
+    var columnObj = JSON.parse($(this).find("#columnObj").val());
+    columnObj = that.columns.find(function (x) { return x.name == columnObj.name && x.target == columnObj.target });
+    var filterValue = "";
+    if ($(this).find("select").length &gt; 0)
+    filterValue = $(this).find("select").val();
+    else if ($(this).find("input[type!='hidden']").length &gt; 0 && $(this).find("input[type='text']").hasClass("ui-autocomplete-input")) {
+    filterValue = $(this).find("#hdnAutocompleteValue").val();
+    columnObj.autoCompleteValue = $(this).find("input[type!='hidden']").val();
+    }
+    else if ($(this).find("input[type!='hidden']").length &gt; 0)
+    filterValue = $(this).find("input[type!='hidden']").val();
+    if (filterValue && (typeof (filterValue) != "object" || filterValue.length &gt; 0)) {
+    var filterType = $(this).find("#filter-type").val();
+    if (columnObj.type == "date" && filterType == "b") {
+    var filterValueStart = $(this).find(".filter-start input").val();
+    var filterValueEnd = $(this).find(".filter-end input").val();
+    if (!filterValueEnd) {
+    $(this).find(".filter-value1").addClass("is-invalid");
+    reload = false;
+    return false;
+    }
+    if (new Date(filterValueStart) &gt; new Date(filterValueEnd)) {
+    $(this).find(".filter-value1").addClass("is-invalid");
+    reload = false;
+    return false;
+    }
+    filterValue = filterValueStart + "&" + filterValueEnd
+    }
+    $(this).find("input").removeClass("is-invalid");
+    columnObj.filterType = that.getSelectedTypeStringForAPI(filterType);
+    columnObj.filterValue = filterValue;
+    if (that.appliedSearch.filter(function (x) { return x.name == columnObj.name && x.target == columnObj.target }).length &gt; 0) {
+    that.appliedSearch = that.appliedSearch.map(function (e) {
+    if (e.name == columnObj.name)
+    return columnObj;
+    else
+    return e;
+    });
+    }
+    else {
+    that.appliedSearch.push(columnObj);
+    }
+    }
+    });
+    this.showHideActionButton();
+    if (reload) {
+    this.saveDefaultStoredFilter(this);
+    $(this.tableId).DataTable().ajax.reload();
+    }
+    $(that.containerDiv).find(".collapse").collapse("hide");
+    };
+    //create object that is used by the globaltablefunction to pass the data to server
+    this.createSearchObjectForGrid = function () {
+    $(this.tableId).data("search", this.appliedSearch.reduce(function (a, b) { return a + (a.length &gt; 0 ? "," : "") + b.name + "|" + b.filterType + ":" + b.filterValue }, ""));
+    $(this.tableId + "divGridSearch .requiredFields").html("");
+    var columnsRequired = this.getRequiredFields();
+    if (columnsRequired.length &gt; 0) {
+    var columnsName = [];
+    var searchColumn = this.appliedSearch.reduce(function (a, b) { return a + (a.length &gt; 0 ? "," : "") + b.title }, "");
+    $.each(columnsRequired, function (i, v) {
+    if (searchColumn.split(",").indexOf(v) == -1) {
+    columnsName.push(v);
+    }
+    });
+    if (columnsName.length &gt; 0)
+    $(this.tableId + "divGridSearch .requiredFields").html(columnsName.join(', ') + (columnsName.length &gt; 1 ? " are" : " is") + " required fields");
+    }
+
+    return this.createDataSearchObject();
+    };
+    this.createDataSearchObject = function () {
+    return {
+    searchColumn: this.appliedSearch.reduce(function (a, b) { return a + (a.length &gt; 0 ? "," : "") + b.name.replace("2PartSearchValue", "") }, ""),
+    searchType: this.appliedSearch.reduce(function (a, b) { return a + (a.length &gt; 0 ? "," : "") + b.filterType }, ""),
+    searchValue: this.appliedSearch.reduce(function (a, b) { return a + (a.length &gt; 0 ? "," : "") + (typeof (b.filterValue) == "object" ? b.filterValue.join("|") : b.filterValue) }, "")
+    }
+    };
+    this.isParentChild = function (columnObj) {
+    return columnObj.type == "2partlookup";
+    };
+    this.bindDependantSearch = function (columnObj, container) {
+    if (columnObj.isBind)
+    return;
+    var child;
+    var parent;
+    var isOtherPartPresent = columnObj.OtherParts && columnObj.OtherParts.length &gt; 0;
+    var otherParts;
+
+    child = this.columns.filter(function (x) { return x.name == columnObj.part2name })[0];
+    parent = this.columns.filter(function (x) { return x.name == columnObj.part1name })[0];
+
+    //clone objects for Two Part Search
+    parent = $.extend(true, {}, parent);
+    child = $.extend(true, {}, child);
+
+    var Origninalchild = this.columns.filter(function (x) { return x.name == columnObj.part2name })[0];
+    var Orginalparent = this.columns.filter(function (x) { return x.name == columnObj.part1name })[0];
+    delete (Origninalchild.requiredfilter)
+    delete (Orginalparent.requiredfilter)
+    //update some fields, so it won't conflict with other search
+    parent.target += (998 + columnObj.target); child.target += (999 + columnObj.target);
+    parent.name += "2PartSearchValue"; child.name += "2PartSearchValue";
+    if (columnObj.part1type)
+    parent.type = columnObj.part1type;
+    else
+    parent.type = child.type + "2PartSearchValue";
+    parent.Url = columnObj.part1;
+    parent.DownArrowShowAllItems = columnObj.part1DownArrowShowAllItems;
+    child.Url = columnObj.part2;
+    child.parentObj = parent.name;
+    child.parenttarget = parent.target;
+    child.DownArrowShowAllItems = columnObj.part2DownArrowShowAllItems;
+    if (columnObj.part2type)
+    child.type = columnObj.part2type;
+    columnObj.part1target = parent.target;
+    columnObj.part2target = child.target;
+    if (columnObj.default != null)
+    parent.default = child.default = "";
+    this.columns = this.columns.filter(function (x) { return !(x.name == parent.name && x.target == parent.target) && !(x.name == child.name && x.target == child.target) });
+    this.columns.push(parent);
+    this.columns.push(child);
+    var that = this;
+
+    //Other part is used when there is more than one child filter need to add
+    if (isOtherPartPresent) {
+    otherParts = this.columns.filter(function (x) { return columnObj.OtherParts.map(function (y) { return y.name }).indexOf(x.name) != -1 });
+
+    otherParts = otherParts.map(function (x) { return $.extend(true, {}, x); })
+    $.each(otherParts, function (i, v) {
+    this.target += (1000 + i);
+    this.Url = columnObj.OtherParts.find(x =&gt; x.name == v.name).Url;
+    this.name += "2PartSearchValue";
+    if (v.type)
+    this.type = v.type;
+    else
+    this.type = "2PartSearchValue";
+    this.parentObj = parent.name;
+    if (columnObj.default != null)
+    this.default = "";
+    that.columns.push(this);
+    that.columns.find(x =&gt; x.name == this.name && x.target == this.target).isBind = true;
+    });
+    }
+
+    //var html = `&lt;div class="col-xl-3"&gt;&lt;div class="row"&gt;&lt;/div&gt;&lt;/div&gt;`;
+    //html = $(html);
+    var parentHtml = this.getHtmlForParentChildFilter(parent);
+    $(this.containerDiv).find(container).append(parentHtml);
+    var childHtml = this.getHtmlForParentChildFilter(child);
+    childHtml.find("input[name='" + child.name + "']").attr("disabled", "disabled");
+    $(this.containerDiv).find(container).append(childHtml);
+    //Html binding for Otherpart filters
+    if (isOtherPartPresent) {
+    $.each(otherParts, function (i, v) {
+    var partFilter = that.columns.find(x =&gt; x.name == this.name && x.target == this.target);
+    //html.find(".row").append("&lt;div class='col-xl-6'&gt;&lt;/div&gt;");
+    var parthtml = that.getHtmlForParentChildFilter(partFilter);
+    parthtml.find("input[name='" + partFilter.name + "']").attr("disabled", "disabled");
+    $(this.containerDiv).find(container).append(parthtml);
+    });
+    }
+    //if (container)
+    //$(this.containerDiv).find(container).append(html);
+    this.columns.find(x =&gt; x.name == child.name && x.target == child.target).isBind = true;
+    this.columns.find(x =&gt; x.name == parent.name && x.target == parent.target).isBind = true;
+    if (container)
+    this.bindParentChildAutoComplete(parent, parentHtml);
+    };
+    this.bindParentChildAutoComplete = function (parentObj, html) {
+    var that = this;
+    if (parentObj.type == "multiselectcustom") {
+    html.find("input[type=text]").replaceWith("&lt;select class='form-select select2-multiple' name='" + parentObj.name + "' multiple='multiple'&gt;&lt;/select&gt;");
+    var $select = html.find("select");
+    var url = parentObj.Url;
+    var isJsFunction = url.split("|")[0] == "localJS";
+    var isEnum = url.split("|")[0] == "Enumeration";
+    url = url.split("|")[1];
+    if (isJsFunction) {
+    var arr = window[url]();
+    $.each(arr, function (i, v) {
+    $select.append(new Option(v.text || v.Text, v.value || v.Value));
+    })
+    }
+    //get the data from enums in globalenum.js
+    else if (isEnum) {
+    var enm = GlobalEnums[url]
+    $.each(Object.keys(enm), function (i, v) {
+    $select.append(new Option(v, enm[v]));
+    })
+    }
+    //get the data from Web service
+    else {
+    $.ajax({
+    type: "GET",
+    url: url + (url.indexOf("?") != -1 ? "&" : "?") + "term=''",//it automcatically append the teram
+    contentType: "application/json; charset=utf-8",
+    dataType: "json",
+    success: function (suggestion) {
+    if (suggestion) {
+    //map suggestion to exect structure for dropdown
+    suggestion = suggestion.map(function (x) {
+    return { text: (x.text || x.Text), value: (x.value || x.Value) };
+    });
+
+    $.each(suggestion, function (i, v) {
+    $select.append(new Option(v.text || v.Text, v.value || v.Value));
+    })
+    }
+    }
+    });
+    }
+
+    setTimeout(function () {
+    $select.select2({
+    closeOnSelect: false,
+    dropdownCssClass: "Select2MultipleBadge"
+    }).on("select2:open", function (e) {
+    setTimeout(function () {
+    var aria = html.find("span.select2-selection").attr("aria-owns");
+    var listOptions = $("#" + aria + " li");
+    var width = listOptions.first().height();
+
+    $.each(listOptions, function (i, v) {
+    if (width &lt; $(this).width())
+    width = $(this).width();
+    });
+
+    $("#" + aria + " li").width(width);
+    });
+    });
+
+    $select.on('change', function (e) {
+    const $select = $(this);
+    const numSelected = $select.select2('data').length;
+    $select.next('span.select2').find('ul').html(function () {
+    return `&lt;li class="select2-selection__choice"&gt;${numSelected} selected&lt;/li&gt;`;
+    });
+
+    //On selection of parent bind the autocomplete of child
+    var childs = that.columns.filter(function (x) { return x.parentObj == parentObj.name && x.parenttarget == parentObj.target });
+    $.each(childs, function (i, v) {
+    $(that.containerDiv).find("input[name='" + v.name + "']").val("");
+    $(that.containerDiv).find("input[name='" + v.name + "']").siblings("#hdnAutocompleteValue").val("");
+    $(that.containerDiv).find("input[name='" + v.name + "']").attr("disabled", "disabled");
+    });
+    if ($select.val().length == 0)
+    return;
+    $.each(childs, function (i, v) {
+    var isJsFunction = v.Url.split("|")[0] == "localJS";
+    var Url = v.Url;
+    if (!isJsFunction)
+    Url = Url + encodeURIComponent($select.val().join(','));
+    $(that.containerDiv).find("input[name='" + v.name + "']").removeAttr("disabled");
+    if ($(that.containerDiv).find("input[name='" + v.name + "']").length &gt; 0)
+    that.bindAutocomplete($(that.containerDiv).find("input[name='" + v.name + "']"), Url, v.DownArrowShowAllItems, function (item2) {
+    if (item2) {
+    $(that.containerDiv).find("input[name='" + v.name + "']").val(item2.text || item2.Text);
+    }
+    else {
+    $(that.containerDiv).find("input[name='" + v.name + "']").val("");
+    }
+    }, encodeURIComponent($select.val().join(',')));
+    });
+
+    });
+    const numSelected = $select.select2('data').length;
+    $select.next('span.select2').find('ul').html(function () {
+    return `&lt;li class="select2-selection__choice"&gt;${numSelected} selected&lt;/li&gt;`;
+    })
+
+    $select.on('select2:select', function (e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    return false;
+    });
+    })
+    }
+    else {
+    this.bindAutocomplete($(this.containerDiv).find("input[name='" + parentObj.name + "']"), parentObj.Url, parentObj.DownArrowShowAllItems, function (item) {
+    //On selection of parent bind the autocomplete of child
+    var childs = that.columns.filter(function (x) { return x.parentObj == parentObj.name && x.parenttarget == parentObj.target });
+    if (item == null) {
+    $.each(childs, function (i, v) {
+    $(that.containerDiv).find("input[name='" + v.name + "']").val("");
+    $(that.containerDiv).find("input[name='" + v.name + "']").siblings("#hdnAutocompleteValue").val("");
+    $(that.containerDiv).find("input[name='" + v.name + "']").attr("disabled", "disabled");
+    });
+    return;
+    }
+    var isEnum = parentObj.Url.split("|")[0] == "Enumeration";
+    $(that.containerDiv).find("input[name='" + parentObj.name + "']").val((!isEnum) ? item.text : item.value || item.Value);
+    //there can be three ways to fetch value
+    //1)from the function which returns array of value
+    //2)Webservice
+    //3)Enumeration in globalEnum.js
+    $.each(childs, function (i, v) {
+    var isJsFunction = v.Url.split("|")[0] == "localJS";
+    var Url = v.Url;
+    if (!isJsFunction)
+    Url = Url + (isEnum ? item.text : item.value);
+    $(that.containerDiv).find("input[name='" + v.name + "']").removeAttr("disabled");
+    if ($(that.containerDiv).find("input[name='" + v.name + "']").length &gt; 0)
+    that.bindAutocomplete($(that.containerDiv).find("input[name='" + v.name + "']"), Url, v.DownArrowShowAllItems, function (item2) {
+    if (item2) {
+    $(that.containerDiv).find("input[name='" + v.name + "']").val(item2.text || item2.Text);
+    }
+    else {
+    $(that.containerDiv).find("input[name='" + v.name + "']").val("");
+    }
+    }, (isEnum ? item.text : item.value || item.Value));
+    });
+    });
+    }
+    };
+    //stringify column object
+    this.stringifyColumnObject = function (columnObject) {
+    //we need to convert function to string since you can't stingify the function
+    if (columnObject.dataFunction && typeof columnObject.dataFunction == "function")
+    columnObject.dataFunction = columnObject.dataFunction.name;
+    return JSON.stringify(columnObject);
+    };
+    this.specialToASCII = function (str) {
+    let res = '';
+    for (let i = 0; i &lt; str.length; i++) {
+    if (+str[i] || str[i].toLowerCase() !== str[i].toUpperCase() || str[i] === ' ') {
+    res += str[i];
+    continue;
+    };
+    res += str[i].charCodeAt(0);
+    };
+    return res.replaceAll(" ", "");
+    };
+    //create tag for default pill
+    this.createTagHTML = function (description, columnObject) {
+    var html = this.tagHTML.replace("{{text}}", description).replace("{{target}}", columnObject.target).replace("{{ColumnName}}", this.specialToASCII(columnObject.name))
+    var tag = $(html)
+    if (columnObject.requiredfilter) tag.find(".remove-filter").remove();
+    tag.find("#columnObj").val(this.stringifyColumnObject(columnObject));
+    return tag;
+    };
+    //Function to bind autocomplete to provided input
+    this.bindAutocomplete = function (element, url, onDownArrowToShowAllItems, selectCallBack, parentValue) {
+    var autoCompleteContent = [];
+    var isJsFunction = url.split("|")[0] == "localJS";
+    var isEnum = url.split("|")[0] == "Enumeration";
+    url = url.split("|")[1];
+    if ($(element).data('autocomplete')) {
+    $(element).autocomplete("destroy");
+    }
+    var elementID = "AutocompleteValue";
+    if ($(element).siblings("#hdn" + elementID).length == 0) {
+    var hdnHtml = "&lt;input type='hidden' id='hdn" + elementID + "'&gt;";
+    $(element).parent().append(hdnHtml);
+    }
+    $(element).siblings("#hdn" + elementID).val('');
+
+    $(element).autocomplete({
+    source: function (request, response) {
+    //get the data from jsfunction
+    if (isJsFunction) {
+    var data = window[url](parentValue);
+    data = data.filter(function (x) {
+    return (x.text || x.Text).toString().toLowerCase().indexOf(request.term.toLowerCase()) != -1;
+    });
+    data = data.map(function (x) {
+    return { text: (x.text || x.Text), value: (x.value || x.Value) };
+    });
+    response(data);
+    }
+    //get the data from enums in globalenum.js
+    else if (isEnum) {
+    var data = [];
+    var enm = GlobalEnums[url]
+    $.each(Object.keys(enm), function (i, v) {
+    data.push({ text: enm[v], value: v });
+    })
+    data = data.filter(function (x) {
+    return (x.value).toString().toLowerCase().indexOf(request.term.toLowerCase()) != -1;
+    });
+    response(data);
+    }
+    //get the data from Web service
+    else {
+    $.ajax({
+    type: "GET",
+    url: url + (url.indexOf("?") != -1 ? "&" : "?") + "term=" + request.term,//it automcatically append the teram
+    contentType: "application/json; charset=utf-8",
+    dataType: "json",
+    success: function (suggestion) {
+    if (suggestion) {
+    suggestion = suggestion.filter(function (x) {
+    return (x.text || x.Text) != null && (x.text || x.Text).toString().toLowerCase().indexOf(request.term.toLowerCase()) != -1;
+    });
+    //map suggestion to exect structure for dropdown
+    suggestion = suggestion.map(function (x) {
+    return { text: (x.text || x.Text), value: (x.value || x.Value) };
+    });
+    }
+    response(suggestion)
+    }
+    });
+    }
+    },
+    minLength: onDownArrowToShowAllItems ? 0 : 1,
+    change: function (event, ui) {
+    if (!ui.item) {
+    if (autoCompleteContent && autoCompleteContent.length &gt; 0) {
+    var item = autoCompleteContent.find(x =&gt; x.value.toLowerCase() == $(element).val().toLowerCase());
+    if (item) {
+    $(element).siblings("#hdn" + elementID).val((isEnum ? item.text : item.value));
+    $(element).val(item.value);
+    if (typeof selectCallBack != 'undefined' && selectCallBack != null && typeof selectCallBack == "function") {
+    selectCallBack(item);
+    return;
+    }
+    return;
+    }
+    }
+    $(element).siblings("#hdn" + elementID).val('');
+    $(element).val('').change();
+    if (typeof selectCallBack != 'undefined' && selectCallBack != null && typeof selectCallBack == "function") {
+    selectCallBack(null);
+    return;
+    }
+    }
+    },
+    response: function (event, ui) {
+    autoCompleteContent = ui.content;
+    },
+    select: function (event, ui) {
+    event.stopImmediatePropagation();
+    setTimeout(function () {
+    if (ui.item)
+    $(element).siblings("#hdn" + elementID).val((isEnum ? ui.item.text : ui.item.value));
+    if (typeof selectCallBack != 'undefined' && selectCallBack != null && typeof selectCallBack == "function")
+    selectCallBack(ui.item);
+    });
+    }
+    }).autocomplete("instance")._renderItem = function (ul, item) {
+    return $("&lt;li&gt;
+        ")
+        .append("&lt;div&gt;" + (isEnum ? item.value : item.text) + "&lt;/div&gt;")
+        .appendTo(ul);
+        };
+        if (!onDownArrowToShowAllItems) {
+        $(element).attr("autocomplete", "DoNOTAutoComplete");
+        }
+        }
+        this.bindSavedSearches = function () {
+        //this method bind the saved search from localstorage
+        var allList = this.getSearchesList();
+        $(this.containerDiv).find(".savedSearches").html(allList).show()
+        };
+        this.getSearchesList = function (take = -1, isRecent = false) {
+        //get saved list from localstorage and return the list
+        var storedValue = localStorage.getItem(window.location.pathname + "_" + this.tableId.replace("#", "") + "_search");
+        var storedFilter = storedValue == null ? {} : JSON.parse(storedValue);
+        var list = "";
+
+        if (take == -1)
+        take = storedFilter.length;
+
+        Object.keys(storedFilter).reverse().forEach(function (v, i) {
+        var text = v;
+        var storedValue = storedFilter[v];
+        if (isRecent && v.indexOf("~removedRecent") &gt; 0)
+        take++;
+        else if (take == null || i &lt; take)
+        list += "&lt;div class='px-3 py-2 d-flex justify-content-between align-items-center px-0 cursor-pointer " + (text.indexOf("_____DefaultSaveFilter") &gt; -1 ? "applyDefaultStoredFilter d-none" : "applyStoredFilter") + "' data-value='" + btoa(JSON.stringify(storedValue)) + "'&gt;" + text.replace("~removedRecent", "") + "&lt;span class='dripicons-cross cursor-pointer remove-filter align-top ps-2 removeStoredFilter' data-text='" + text + "' data-isRecent='" + isRecent + "'&gt;&lt;/span&gt;&lt;/div&gt;";
+        });
+        return list;
+        };
+        this.showHideActionButton = function () {
+        //If any default filter has value then show action buttons(Save, Clear)
+        if (this.appliedSearch.length &gt; 0)
+        $(this.containerDiv).find(".accordion-item .action-button").removeAttr("disabled");
+        else
+        $(this.containerDiv).find(".accordion-item .action-button").attr("disabled", true);
+        };
+        this.getRequiredFields = function () {
+        var data = this.createDataSearchObject();
+        var requiredColumns = [];
+        if (this.columns.filter(function (x) { return x.requiredfilter == true }).length &gt; 0) {
+        var columnsRequired = this.columns.filter(function (x) { return x.requiredfilter == true });
+        $.each(columnsRequired, function (i, v) {
+        var isRequired = true;
+        if (v.dependancy) {
+        var control = v.dependancy.control;
+        var value = v.dependancy.value;
+        var index = data.searchColumn.split(",").indexOf(control);
+        if (index != -1) {
+        var controlValue = data.searchValue.split(",")[index];
+        isRequired = (controlValue.toLowerCase() == value.toLowerCase()) && data.searchColumn.split(",").indexOf(v.name) == -1;
+        }
+        else
+        isRequired = false;
+        }
+        if (isRequired && data.searchColumn.split(",").indexOf(v.name) == -1) {
+        requiredColumns.push(v.name);
+        }
+        });
+        }
+        return requiredColumns;
+        };
+        this.isDisabled = function (column) {
+        if (column.dependancy && column.requiredfilter) {
+        var control = column.dependancy.control;
+        var value = column.dependancy.value;
+        var dependancyColumn = this.columns.find(x =&gt; x.name == control);
+        if (dependancyColumn.default != null) {
+        var applied = this.appliedSearch.find(x =&gt; x.name == control)
+        if (applied.filterValue != value)
+        return column.dependancy.action == "disable";
+        }
+        }
+        return false;
+        };
+        this.findDependantAndTakeAction = function (column, currentValue) {
+        var dependant = this.columns.find(x =&gt; x.dependancy && x.dependancy.control == column.name);
+        if (dependant && dependant.requiredfilter) {
+        if (dependant.default != null) {
+        if (currentValue.toLowerCase() != dependant.dependancy.value.toLowerCase() && dependant.dependancy.action == "disable") {
+        var tag = this.createTagHTML(dependant.title, dependant);
+        tag.addClass("bg-gray-350");
+        tag.find(".remove-filter").remove();
+        $(this.containerDiv).find(".lereta-search-pill." + this.specialToASCII(dependant.name)).replaceWith(tag);
+        this.appliedSearch = this.appliedSearch.filter(function (x) { return !(x.name == dependant.name && x.target == dependant.target) })
+        $('.tooltip').remove();
+        this.showHideActionButton();
+        this.bindEvent();
+        }
+        }
+        else {
+        if (currentValue.toLowerCase() != dependant.dependancy.value.toLowerCase() && dependant.dependancy.action == "disable") {
+        $(this.containerDiv).find("." + this.specialToASCII(dependant.name)).find("input[type='text']").val("")
+        $(this.containerDiv).find("." + this.specialToASCII(dependant.name)).find("input[type='text']").attr("disabled", "disabled");
+        this.appliedSearch = this.appliedSearch.filter(function (x) { return !(x.name == dependant.name && x.target == dependant.target) })
+        }
+        else {
+        $(this.containerDiv).find("." + this.specialToASCII(dependant.name)).find("input[type='text']").removeAttr("disabled");
+        }
+
+        }
+        }
+        };
+        //section: htmls - predefined html for popup for every type and search div
+        this.searchHTML = `&lt;div class="card border"&gt;
+            &lt;div class="card-body"&gt;
+                &lt;div class="col-lg-12 d-flex flex-wrap lereta-grid-search"&gt;
+                    &lt;span class="iconify LERETAIconMain me-1 mt-2" data-inline="false" data-icon="la:search"&gt;&lt;/span&gt;
+                    &lt;div class="ms-auto d-flex"&gt;
+                        &lt;p class="requiredFields text-CoreTwo font-size-20 mb-0 p-1"&gt;&lt;/p&gt;
+                        &lt;button type="button" class="btn ms-3 d-none btn-apply manual-search-button" id="manual-search-button"&gt;Search&lt;/button&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;hr class="m-0" /&gt;
+            &lt;div class="card-body"&gt;
+                &lt;div class="col-md-12"&gt;
+                    &lt;div class="row"&gt;
+                        &lt;div class="accordion" id="accordionAdvanced{{tableID}}"&gt;
+                            &lt;div class="accordion-item border-0"&gt;
+                                &lt;h2 class="accordion-header ps-3 d-flex" id="headingOne{{tableID}}"&gt;
+                                    &lt;button class="accordion-button collapsed p-0 w-auto" type="button" style="min-width:163px;" data-bs-toggle="collapse" data-bs-target="#collapseOne{{tableID}}" aria-expanded="true" aria-controls="collapseOne"&gt;
+                                        Advanced Search
+                                    &lt;/button&gt;
+                                    &lt;button type="button" class="btn ms-3 action-button" disabled="true" style="min-width:115px;" id="SaveButton"&gt;Save Search&lt;/button&gt;&lt;button type="button" class="btn btn-sm action-button" style="min-width:109px;" disabled="true" id="{{tableID}}_clearFilter"&gt;Clear Search&lt;/button&gt;
+                                    &lt;div class="ms-3 savedSearches d-flex overflow-auto webkit-scroll"&gt;&lt;/div&gt;
+                                &lt;/h2&gt;
+
+                                &lt;div id="collapseOne{{tableID}}" class="accordion-collapse  accordion-collapse-advanced collapse" aria-labelledby="headingOne{{tableID}}" data-bs-parent="#accordionAdvanced{{tableID}}"&gt;
+                                    &lt;div class="accordion-body pb-0 row"&gt;
+                                        &lt;div class="col-md-12"&gt;
+                                            &lt;div class="row preferredElement"&gt;
+
+                                            &lt;/div&gt;
+                                            &lt;div class="additional-filters"&gt;
+                                                &lt;div class="row additionalElement"&gt;
+
+                                                &lt;/div&gt;
+                                            &lt;/div&gt;
+                                            &lt;div class="accordion pt-3" id="accordionSeeAll{{tableID}}"&gt;
+                                                &lt;div class="accordion-item border-0"&gt;
+                                                    &lt;h2 class="accordion-header" id="headingOne{{tableID}}"&gt;
+                                                        &lt;button class="accordion-button collapsed p-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOneAll{{tableID}}" aria-expanded="true" aria-controls="collapseOne"&gt;
+                                                            See All
+                                                        &lt;/button&gt;
+                                                    &lt;/h2&gt;
+                                                    &lt;div id="collapseOneAll{{tableID}}" class="accordion-collapse collapse" aria-labelledby="headingOne{{tableID}}" data-bs-parent="#accordionSeeAll{{tableID}}"&gt;
+                                                        &lt;div class="accordion-body px-0 row"&gt;
+                                                            &lt;div class="col-md-12"&gt;
+                                                                &lt;div class="row otherElements"&gt;
+
+                                                                &lt;/div&gt;
+                                                            &lt;/div&gt;
+                                                        &lt;/div&gt;
+                                                    &lt;/div&gt;
+                                                &lt;/div&gt;
+                                            &lt;/div&gt;
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;
+                                    &lt;hr class="mb-0 mt-3 row" /&gt;
+                                    &lt;div class="card-body pb-0 lereta-grid-search-footer"&gt;
+                                        &lt;div class="col-lg-12 d-flex justify-content-end"&gt;
+                                            &lt;input type="button" id="GridSearchCancel" class="btn btn-cancel" value="Cancel"&gt;
+                                            &lt;input type="button" id="GridSearchApply" class="btn btn-apply" value="Apply"&gt;
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;!-- end card-body --&gt;
+        &lt;/div&gt;`;
+        this.tagHTML = `&lt;div data-bs-toggle="tooltip" data-bs-placement="top" class="form-control lereta-search-pill rounded-pill tag-filter text-nowrap {{ColumnName}}" title="Click to Edit"&gt; {{text}} &lt;span class="dripicons-cross cursor-pointer remove-filter align-top d-inline-flex" title="Click to Remove" data-bs-toggle="tooltip" data-bs-placement="top" onmouseover="$('.lereta-search-pill').tooltip('hide');event.stopPropagation()"&gt;&lt;/span&gt;&lt;input type="hidden" id="columnObj"&gt;&lt;/div&gt;`;
+        this.additionalItemHTML = `&lt;div class="col-md-3 my-2 switch-button"&gt;
+            &lt;div class="row pe-75"&gt;
+                &lt;div class="col-md-6 d-flex align-items-center"&gt;
+                    &lt;span class="grid-search-columnname"&gt;{{ColumnName}}&lt;/span&gt;
+                    &lt;input type="hidden" id="columnObj" /&gt;
+                &lt;/div&gt;
+                &lt;div class="col-md-6"&gt;
+                    &lt;div class="form-check form-switch form-switch-slg d-flex align-items-center" dir="rtl"&gt;
+                        &lt;input class="form-check-input state-ignore" type="checkbox" id="switch{{target}}"&gt;
+                        &lt;label class="form-check-label me-5 text-CoreOne" for="switch{{target}}"&gt;&lt;/label&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;`;
+        this.preferredItemHtml = `&lt;div class="col-xl-3 col-md-6 grid-search-input"&gt;
+            &lt;div class="mb-3"&gt;
+                &lt;input type="hidden" id="columnObj" /&gt;
+                &lt;label class="form-label lereta-form-label d-flex"&gt;
+                    {{ColumnName}}
+                    &lt;div class="dropdown type-selection ms-auto"&gt;
+                        &lt;input type="hidden" id="filter-type"&gt;
+                        &lt;a class="dropdown-toggle" href="javascript:void(0)" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"&gt;
+                            Equals
+                        &lt;/a&gt;
+                        &lt;div class="dropdown-menu" aria-labelledby="dropdownMenuLink"&gt;
+                            &lt;a class="dropdown-item" href="#"&gt;Action&lt;/a&gt;
+                            &lt;a class="dropdown-item" href="#"&gt;Another action&lt;/a&gt;
+                            &lt;a class="dropdown-item" href="#"&gt;Something else here&lt;/a&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/label&gt;
+                &lt;input type="text" name="{{ColumnName}}" placeholder="..." class="form-control lereta-form-text"&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;`;
+        this.daterangeInputHtml = `&lt;div class="position-relative col-sm-12 filter-start"&gt;&lt;input type="text" class="form-control pe-4 datepickerGrid filter-value" placeholder="Enter Date"&gt;&lt;span class="input-group-text bg-transparent position-absolute top-0 end-0 border-0 h-100 pe-4"&gt;&lt;span class="iconify LERETAIconMain LERETAIconDatePicker" data-inline="false" data-icon="bi:calendar-fill"&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+        &lt;div class="position-relative col-sm-6 d-none filter-end"&gt;&lt;input type="text" class="form-control pe-4 datepickerGrid filter-value1" placeholder="Enter Date"&gt;&lt;span class="input-group-text bg-transparent position-absolute top-0 end-0 border-0 h-100 pe-4"&gt;&lt;span class="iconify LERETAIconMain LERETAIconDatePicker" data-inline="false" data-icon="bi:calendar-fill"&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;`;
+        this.numberPopupHTML = `&lt;div class="dropdown-menu dropdown-menu-lg number-popup value-selection-popup" data-columnname="{{ColumnName}}"&gt;
+            &lt;input type="hidden" id="columnObj" /&gt;
+            &lt;div class="col-sm-12 popup-body"&gt;
+                &lt;select class="form-select filter-selection"&gt;
+                    &lt;option value="e"&gt;Equals&lt;/option&gt;
+                    &lt;option value="n"&gt;Is Not Equal To&lt;/option&gt;
+                    &lt;option value="g"&gt;Is Greater Than&lt;/option&gt;
+                    &lt;option value="l"&gt;Is Less Than&lt;/option&gt;
+                &lt;/select&gt;
+                &lt;input type="number" class="form-control mt-2 filter-value"&gt;
+                &lt;div class="d-flex mt-2"&gt; &lt;input type="button" id="TableSearchButtonForCancel" class="btn btn-cancel" value="Cancel"&gt; &lt;input type="button" id="TableSearchButtonForTypeNumber" class="btn btn-apply" value="Apply"&gt; &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;`;
+        this.selectOrEnumPopupHTMl = `&lt;div class="dropdown-menu dropdown-menu-lg select-popup value-selection-popup" data-columnname="{{ColumnName}}"&gt;
+            &lt;input type="hidden" id="columnObj" /&gt;
+            &lt;div class="col-sm-12 popup-body"&gt;
+                &lt;select class="form-select filter-selection"&gt;
+                    &lt;option value="i"&gt;Is&lt;/option&gt;
+                    &lt;option value="c"&gt;Contains&lt;/option&gt;
+                &lt;/select&gt;
+                &lt;select class="form-select mt-3 filter-value"&gt; &lt;/select&gt;
+                &lt;div class="d-flex mt-2"&gt; &lt;input type="button" id="TableSearchButtonForCancel" class="btn btn-cancel" value="Cancel"&gt; &lt;input type="button" id="TableSearchButtonForTypeSelect" class="btn btn-apply" value="Apply"&gt; &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;`;
+        this.dateRangePopupHTML = `&lt;div class="dropdown-menu dropdown-menu-lg daterange-popup value-selection-popup" data-columnname="{{ColumnName}}"&gt;
+            &lt;input type="hidden" id="columnObj" /&gt;
+            &lt;div class="col-sm-12 popup-body"&gt;
+                &lt;div class="position-relative"&gt;&lt;input type="text" class="form-control pe-4 datepickerGrid filter-value" placeholder="Enter Start Date"&gt;&lt;span class="input-group-text bg-transparent position-absolute top-0 end-0 border-0 h-100"&gt;&lt;span class="iconify LERETAIconMain LERETAIconDatePicker" data-inline="false" data-icon="bi:calendar-fill"&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+                &lt;div class="position-relative mt-2"&gt;&lt;input type="text" class="form-control pe-4 datepickerGrid filter-value1" placeholder="Enter End Date"&gt;&lt;span class="input-group-text bg-transparent position-absolute top-0 end-0 border-0 h-100"&gt;&lt;span class="iconify LERETAIconMain LERETAIconDatePicker" data-inline="false" data-icon="bi:calendar-fill"&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+                &lt;div class="d-flex mt-2"&gt; &lt;input type="button" id="TableSearchButtonForCancel" class="btn btn-cancel" value="Cancel"&gt; &lt;input type="button" id="TableSearchButtonForTypeDate" class="btn btn-apply" value="Apply"&gt; &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;`;
+        this.stringPopupHTML = `&lt;div class="dropdown-menu dropdown-menu-lg string-popup value-selection-popup" data-columnname="{{ColumnName}}"&gt;
+            &lt;input type="hidden" id="columnObj" /&gt;
+            &lt;div class="col-sm-12 popup-body"&gt;
+                &lt;select class="form-select filter-selection"&gt;
+                    &lt;option value="i"&gt;Is&lt;/option&gt;
+                    &lt;option value="c"&gt;Contains&lt;/option&gt;
+                &lt;/select&gt;
+                &lt;input type="text" class="form-control mt-3 filter-value"&gt;
+                &lt;div class="d-flex mt-2"&gt; &lt;input type="button" id="TableSearchButtonForCancel" class="btn btn-cancel" value="Cancel"&gt; &lt;input type="button" id="TableSearchButtonForTypeString" class="btn btn-apply" value="Apply"&gt; &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;`;
+        this.booleanPopupHTML = `&lt;div class="dropdown-menu dropdown-menu-lg boolean-popup value-selection-popup" data-columnname="{{ColumnName}}"&gt;
+            &lt;input type="hidden" id="columnObj" /&gt;
+            &lt;div class="col-sm-12 popup-body"&gt;
+                &lt;select class="form-select filter-value"&gt;
+                    &lt;option value="true"&gt;true&lt;/option&gt;
+                    &lt;option value="false"&gt;false&lt;/option&gt;
+                &lt;/select&gt;
+                &lt;div class="d-flex mt-2"&gt; &lt;input type="button" id="TableSearchButtonForCancel" class="btn btn-cancel" value="Cancel"&gt; &lt;input type="button" id="TableSearchButtonForTypeBoolean" class="btn btn-apply" value="Apply"&gt; &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;`;
+        this.datePopupHTML = `&lt;div class="dropdown-menu dropdown-menu-lg date-popup value-selection-popup" data-columnname="{{ColumnName}}"&gt;
+            &lt;input type="hidden" id="columnObj" /&gt;
+            &lt;div class="col-sm-12 popup-body"&gt;
+                &lt;select class="form-select filter-selection"&gt;
+                    &lt;option value="g"&gt;After&lt;/option&gt;
+                    &lt;option value="l"&gt;Before&lt;/option&gt;
+                    &lt;option value="e"&gt;On&lt;/option&gt;
+                    &lt;option value="b"&gt;Between&lt;/option&gt;
+                &lt;/select&gt;
+                &lt;div class="position-relative mt-2"&gt;&lt;input type="text" class="form-control pe-4 datepickerGrid filter-value" placeholder="Enter Date"&gt;&lt;span class="input-group-text bg-transparent position-absolute top-0 end-0 border-0 h-100"&gt;&lt;span class="iconify LERETAIconMain LERETAIconDatePicker" data-inline="false" data-icon="bi:calendar-fill"&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+                &lt;div class="position-relative mt-2 nextdate"&gt;&lt;input type="text" class="form-control pe-4 datepickerGrid filter-value1" placeholder="Enter End Date"&gt;&lt;span class="input-group-text bg-transparent position-absolute top-0 end-0 border-0 h-100"&gt;&lt;span class="iconify LERETAIconMain LERETAIconDatePicker" data-inline="false" data-icon="bi:calendar-fill"&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+                &lt;div class="d-flex mt-2"&gt; &lt;input type="button" id="TableSearchButtonForCancel" class="btn btn-cancel" value="Cancel"&gt; &lt;input type="button" id="TableSearchButtonForTypeDate" class="btn btn-apply" value="Apply"&gt; &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;`;
+        this.partPopupHTML = `&lt;div class="dropdown-menu dropdown-menu-lg 2part-popup value-selection-popup" data-columnname="{{ColumnName}}"&gt;
+            &lt;input type="hidden" id="columnObj" /&gt;
+            &lt;div class="col-sm-12 popup-body"&gt;
+                &lt;div class="position-relative"&gt;&lt;input type="text" class="form-control filter-value ClearableTextBox" autocomplete="DoNOTAutoComplete" placeholder="" required='true'&gt;&lt;a class="input-group-text bg-transparent position-absolute top-0 end-0 border-0 h-100"&gt;&lt;span class="iconify LERETAIconMain LERETAIconPartTwo" data-inline="false" data-icon="akar-icons:cross"&gt;&lt;/span&gt;&lt;/a&gt;&lt;/div&gt;
+                &lt;div class="position-relative mt-2"&gt;&lt;input type="text" class="form-control filter-value1 ClearableTextBox childinput" autocomplete="DoNOTAutoComplete" placeholder="" required='true'&gt;&lt;a class="input-group-text bg-transparent position-absolute top-0 end-0 border-0 h-100"&gt;&lt;span class="iconify LERETAIconMain LERETAIconPartTwo" data-inline="false" data-icon="akar-icons:cross"&gt;&lt;/span&gt;&lt;/a&gt;&lt;/div&gt;
+                &lt;input type="hidden" id="part1Value"&gt;
+                &lt;input type="hidden" id="part2Value"&gt;
+                &lt;div class="d-flex mt-2"&gt; &lt;input type="button" id="TableSearchButtonForCancel" class="btn btn-cancel" value="Cancel"&gt; &lt;input type="button" id="TableSearchButtonForTypeDate" class="btn btn-apply" value="Apply"&gt; &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;`;
+        this.multiSelectPopupHtml = `&lt;div class="dropdown-menu dropdown-menu-lg multiselect-popup value-selection-popup" data-columnname="{{ColumnName}}"&gt;
+            &lt;input type="hidden" id="columnObj" /&gt;
+            &lt;div class="col-sm-12 popup-body"&gt;
+                &lt;select class="form-select mt-3 filter-value form-control select2-multiple" multiple="multiple"&gt; &lt;/select&gt;
+                &lt;div class="d-flex mt-2"&gt; &lt;input type="button" id="TableSearchButtonForCancel" class="btn btn-cancel" value="Cancel"&gt; &lt;input type="button" id="TableSearchButtonForTypeSelect" class="btn btn-apply" value="Apply"&gt; &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;`;
+        this.partMultiSelectPopupHTML = `&lt;div class="dropdown-menu dropdown-menu-lg 2partMultiSelect-popup value-selection-popup" data-columnname="{{ColumnName}}"&gt;
+            &lt;input type="hidden" id="columnObj" /&gt;
+            &lt;div class="col-sm-12 popup-body"&gt;
+                &lt;div class="position-relative"&gt;&lt;select class="form-select mt-3 filter-value form-control select2-multiple" multiple="multiple" required='true'&gt; &lt;/select&gt;&lt;/div&gt;
+                &lt;div class="position-relative mt-2"&gt;&lt;input type="text" class="form-control filter-value1 ClearableTextBox childinput" autocomplete="DoNOTAutoComplete" placeholder="" required='true'&gt;&lt;a class="input-group-text bg-transparent position-absolute top-0 end-0 border-0 h-100"&gt;&lt;span class="iconify LERETAIconMain LERETAIconPartTwo" data-inline="false" data-icon="akar-icons:cross"&gt;&lt;/span&gt;&lt;/a&gt;&lt;/div&gt;
+                &lt;input type="hidden" id="part1Value"&gt;
+                &lt;input type="hidden" id="part2Value"&gt;
+                &lt;div class="d-flex mt-2"&gt; &lt;input type="button" id="TableSearchButtonForCancel" class="btn btn-cancel" value="Cancel"&gt; &lt;input type="button" id="TableSearchButtonForTypeSelect" class="btn btn-apply" value="Apply"&gt; &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;`;
+        this.autocompletePopupHTML = `&lt;div class="dropdown-menu dropdown-menu-lg autocomplete-popup value-selection-popup" data-columnname="{{ColumnName}}"&gt;
+            &lt;input type="hidden" id="columnObj" /&gt;
+            &lt;div class="col-sm-12 popup-body"&gt;
+                &lt;div class="position-relative"&gt;&lt;input type="text" class="form-control filter-value ClearableTextBox" autocomplete="DoNOTAutoComplete" placeholder=""&gt;&lt;a class="input-group-text bg-transparent position-absolute top-0 end-0 border-0 h-100"&gt;&lt;span class="iconify LERETAIconMain LERETAIconPartTwo" data-inline="false" data-icon="akar-icons:cross"&gt;&lt;/span&gt;&lt;/a&gt;&lt;/div&gt;
+                &lt;input type="hidden" id="filter-value"&gt;
+                &lt;div class="d-flex mt-2"&gt; &lt;input type="button" id="TableSearchButtonForCancel" class="btn btn-cancel" value="Cancel"&gt; &lt;input type="button" id="TableSearchButtonForTypeDate" class="btn btn-apply" value="Apply"&gt; &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;`;
+        this.multiSelectCustom = `&lt;div class="dropdown-menu dropdown-menu-lg multiselectcustom-popup value-selection-popup" data-columnname="{{ColumnName}}"&gt;
+            &lt;input type="hidden" id="columnObj" /&gt;
+            &lt;div class="col-sm-12 popup-body"&gt;
+                &lt;select class="form-select mt-3 filter-value form-control select2-multiple" multiple="multiple"&gt; &lt;/select&gt;
+                &lt;div class="d-flex mt-2"&gt; &lt;input type="button" id="TableSearchButtonForCancel" class="btn btn-cancel" value="Cancel"&gt; &lt;input type="button" id="TableSearchButtonForTypeSelect" class="btn btn-apply" value="Apply"&gt; &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;`;
+        }
+
+            
+            
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
