@@ -257,20 +257,20 @@ namespace Lakshmi.Common
             }
         }
 	
-	public static List< T > ConvertDataTable< T >(DataTable dt)
+	public static List&lt;T&gt; ConvertDataTable&lt;T&gt;(DataTable dt)
         {
-            List< T > data = new List< T >();
+            List&lt;T&gt; data = new List&lt;T&gt;();
             foreach (DataRow row in dt.Rows)
             {
-                T item = GetItem< T >(row);
+                T item = GetItem&lt;T&gt;(row);
                 data.Add(item);
             }
             return data;
         }
-        public static T GetItem< T >(DataRow dr)
+        public static T GetItem&lt;T&gt;(DataRow dr)
         {
             Type temp = typeof(T);
-            T obj = Activator.CreateInstance< T >();
+            T obj = Activator.CreateInstance&lt;T&gt;();
 
             foreach (DataColumn column in dr.Table.Columns)
             {
@@ -297,29 +297,29 @@ namespace Lakshmi.Common
             return obj;
         }
 
-        public static IOrderedQueryable< T > OrderBy< T >(this IQueryable< T > source, string property, string sortbytype)
+        public static IOrderedQueryable&lt;T&gt; OrderBy&lt;T&gt;(this IQueryable&lt;T&gt; source, string property, string sortbytype)
         {
             switch (sortbytype)
             {
                 case "asc":
-                    return ApplyOrder< T >(source, property, "OrderBy");
+                    return ApplyOrder&lt;T&gt;(source, property, "OrderBy");
                     break;
                 case "desc":
-                    return ApplyOrder< T >(source, property, "OrderByDescending");
+                    return ApplyOrder&lt;T&gt;(source, property, "OrderByDescending");
                     break;
                 case "thenbyasc":
-                    return ApplyOrder< T >(source, property, "ThenBy");
+                    return ApplyOrder&lt;T&gt;(source, property, "ThenBy");
                     break;
                 case "thenbydesc":
-                    return ApplyOrder< T >(source, property, "ThenByDescending");
+                    return ApplyOrder&lt;T&gt;(source, property, "ThenByDescending");
                     break;
                 default:
-                    return ApplyOrder< T >(source, property, "OrderBy");
+                    return ApplyOrder&lt;T&gt;(source, property, "OrderBy");
                     break;
             }
         }
 
-        static IOrderedQueryable< T > ApplyOrder< T >(IQueryable< T > source, string property, string methodName)
+        static IOrderedQueryable&lt;T&gt; ApplyOrder&lt;T&gt;(IQueryable&lt;T&gt; source, string property, string methodName)
         {
             string[] props = property.Split('.');
             Type type = typeof(T);
@@ -332,17 +332,17 @@ namespace Lakshmi.Common
                 expr = Expression.Property(expr, pi);
                 type = pi.PropertyType;
             }
-            Type delegateType = typeof(Func< , >).MakeGenericType(typeof(T), type);
+            Type delegateType = typeof(Func&lt;,&gt;).MakeGenericType(typeof(T), type);
             LambdaExpression lambda = Expression.Lambda(delegateType, expr, arg);
 
             object result = typeof(Queryable).GetMethods().Single(
-                    method = > method.Name == methodName
+                    method =&gt; method.Name == methodName
                             && method.IsGenericMethodDefinition
                             && method.GetGenericArguments().Length == 2
                             && method.GetParameters().Length == 2)
                     .MakeGenericMethod(typeof(T), type)
                     .Invoke(null, new object[] { source, lambda });
-            return (IOrderedQueryable< T >)result;
+            return (IOrderedQueryable&lt;T&gt;)result;
         }
     }
 }
