@@ -256,46 +256,7 @@ namespace Lakshmi.Common
             }
         }
 	
-	public static List&lt;T&gt; ConvertDataTable&lt;T&gt;(DataTable dt)
-        {
-            List&lt;T&gt; data = new List&lt;T&gt;();
-            foreach (DataRow row in dt.Rows)
-            {
-                T item = GetItem&lt;T&gt;(row);
-                data.Add(item);
-            }
-            return data;
-        }
-        public static T GetItem&lt;T&gt;(DataRow dr)
-        {
-            Type temp = typeof(T);
-            T obj = Activator.CreateInstance&lt;T&gt;();
-
-            foreach (DataColumn column in dr.Table.Columns)
-            {
-                foreach (PropertyInfo prop in temp.GetProperties())
-                {
-
-                    if (prop.Name == column.ColumnName)
-                    {
-                        if (!object.Equals(dr[prop.Name], DBNull.Value))
-                        {
-                            prop.SetValue(obj, dr[column.ColumnName].ToString(), null);
-                        }
-                        else
-                        {
-                            prop.SetValue(obj, "", null);
-                        }
-                    }
-                    else
-                    {
-                        continue;
-                    }
-                }
-            }
-            return obj;
-        }
-
+	
         public static IOrderedQueryable&lt;T&gt; OrderBy&lt;T&gt;(this IQueryable&lt;T&gt; source, string property, string sortbytype)
         {
             switch (sortbytype)
