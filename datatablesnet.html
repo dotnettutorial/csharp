@@ -78,13 +78,13 @@ public class DemoModel{
                 </div>
                 <div>
                     <pre>
-public static List< T > DataReaderMapToList< T >(IDataReader dr)
+public static List&lt;T&gt; DataReaderMapToList&lt;T&gt;(IDataReader dr)
 {
-    List< T > list = new List< T >();
+    List&lt;T&gt; list = new List&lt;T&gt;();
     T obj = default(T);
     while (dr.Read())
     {
-        obj = Activator.CreateInstance< T >();
+        obj = Activator.CreateInstance&lt;T&gt;();
         foreach (PropertyInfo prop in obj.GetType().GetProperties())
         {
             ExcludedAttribute MyExcluded = (ExcludedAttribute)Attribute.GetCustomAttribute(prop, typeof(ExcludedAttribute));
@@ -100,9 +100,9 @@ public static List< T > DataReaderMapToList< T >(IDataReader dr)
                 </div>
                 <div>
                     <pre>
-public List< DemoModel > GetDemoModelList(string DemoID)
+public List&lt;DemoModel&gt; GetDemoModelList(string DemoID)
 {
-    List< DemoModel > demoList = new List< DemoModel >();
+    List&lt;DemoModel&gt; demoList = new List&lt;DemoModel&gt;();
     using (SqlConnection con = new SqlConnection("connectionstring"))
     {
         using (SqlCommand cmd = new SqlCommand("usp_DemoGrid", con))
@@ -120,7 +120,7 @@ public List< DemoModel > GetDemoModelList(string DemoID)
             var noOfRecords = 0;
             using (IDataReader dataReader = cmd.ExecuteReader())
             {
-                demoList = DataReaderMapToList< DemoModel >(dataReader);
+                demoList = DataReaderMapToList&lt;DemoModel&gt;(dataReader);
             }
             if (cmd.Parameters["@noOfRecords"].Value != DBNull.Value)
             {
@@ -159,12 +159,12 @@ public class DemoModel{
                 </div>
                 <div>
                     <pre>
-public static T ConvertTOEntity< T >(IDataReader dr)
+public static T ConvertTOEntity&lt;T&gt;(IDataReader dr)
 {
     T obj = default(T);
     while (dr.Read())
     {
-        obj = Activator.CreateInstance< T >();
+        obj = Activator.CreateInstance&lt;T&gt;();
         foreach (PropertyInfo prop in obj.GetType().GetProperties())
         {
             ExcludedAttribute MyExcluded = (ExcludedAttribute)Attribute.GetCustomAttribute(prop, typeof(ExcludedAttribute));
@@ -230,7 +230,7 @@ public class DemoModel{
                 </div>
                 <div>
                     <pre>
-public static DataTable ListToDataTable< T >(List< T > items)
+public static DataTable ListToDataTable&lt;T&gt;(List&lt;T&gt; items)
 {
     DataTable dataTable = new DataTable(typeof(T).Name);
 
@@ -263,7 +263,7 @@ public static DataTable ListToDataTable< T >(List< T > items)
                 </div>
                 <div>
                     <pre>
-List< DataModel > dataList = new List< DataModel >();
+List&lt;DataModel&gt; dataList = new List&lt;DataModel&gt;();
 DataTable dt = new DataTable();
 dt = ListToDataTable(dataList);
 </pre>
@@ -290,7 +290,7 @@ public class DemoModel{
                 </div>
                 <div>
                     <pre>
-public static DataTable ConvertToDataTable< T >(IList< T > data)
+public static DataTable ConvertToDataTable&lt;T&gt;(IList&lt;T&gt; data)
 {
     PropertyDescriptorCollection properties = TypeDescriptor.GetProperties(typeof(T));
     DataTable table = new DataTable();
@@ -308,13 +308,69 @@ public static DataTable ConvertToDataTable< T >(IList< T > data)
                 </div>
                 <div>
                     <pre>
-IList< DataModel > dataList = new IList< DataModel >();
+IList&lt;DataModel&gt; dataList = new IList&lt;DataModel&gt;();
 DataTable dt = new DataTable();
 dt = ConvertToDataTable(dataList);
 </pre>
                 </div>
             </div>
 
+
+            <!-- Converting data-table to list -->
+            <div class="col-xs-12" id="IListToDatatable">
+                <h3>Converting list to data-table</h3>
+                <div>
+                    <pre>
+[System.AttributeUsage(System.AttributeTargets.Property)]
+public class ExcludedAttribute : Attribute
+{
+}
+</pre>
+                </div>
+                <div>
+                    <pre>
+public static List&lt;T&gt; ConvertDataTable&lt;T&gt;(DataTable dt)
+        {
+            List&lt;T&gt; data = new List&lt;T&gt;();
+            foreach (DataRow row in dt.Rows)
+            {
+                T item = GetItem&lt;T&gt;(row);
+                data.Add(item);
+            }
+            return data;
+        }
+        public static T GetItem&lt;T&gt;(DataRow dr)
+        {
+            Type temp = typeof(T);
+            T obj = Activator.CreateInstance&lt;T&gt;();
+
+            foreach (DataColumn column in dr.Table.Columns)
+            {
+                foreach (PropertyInfo prop in temp.GetProperties())
+                {
+
+                    if (prop.Name == column.ColumnName)
+                    {
+                        if (!object.Equals(dr[prop.Name], DBNull.Value))
+                        {
+                            prop.SetValue(obj, dr[column.ColumnName].ToString(), null);
+                        }
+                        else
+                        {
+                            prop.SetValue(obj, "", null);
+                        }
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+            }
+            return obj;
+        }
+</pre>
+                </div>
+            </div>
         </div>
     </div>
 </body>
