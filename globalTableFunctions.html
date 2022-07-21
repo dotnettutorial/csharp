@@ -1,0 +1,2007 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+  </head>
+  <body>
+    <style>
+      .navbar {
+        overflow: hidden;
+        background-color: #333;
+        position: fixed;
+        top: 0;
+        width: 100%;
+      }
+
+      .navbar a {
+        float: left;
+        display: block;
+        color: #ffffff;
+        padding: 14px 16px;
+        text-decoration: none;
+        font-size: 17px;
+        width: 100%;
+        text-align: left;
+      }
+
+      .main {
+        padding: 16px;
+        margin-top: 30px;
+        height: 1500px;
+        /* Used in this example to enable scrolling */
+      }
+    </style>
+    <nav class="navbar  navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span style="color:white" class="glyphicon glyphicon-th-list"></span>
+          </button>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="./datatablesnet.html">Datareader Mapping</a></li>
+                    <li><a href="./extension.html">Extension</a></li>
+                    <li><a href="./commonapi.html">Common API</a></li>
+                    <li><a href="./encryption.html">Encryption</a></li>
+
+          </ul>
+        </div>
+        <!--/.nav-collapse -->
+      </div>
+    </nav>
+    <div class="main" style="padding:0px 6px;">
+      <div class="row">
+        <div class="col-xs-12">
+          <h3>Extension</h3>
+          <div>
+            <pre>
+/* this is the right one */
+function GlobalCreateDataTable({
+    ajaxUrl,
+    ajaxMethod = "POST",
+    divId = 'tblGridContainer',
+    colDefs,
+    showGearIcon = true,
+    showPagination = true,
+    bottomActionBarButtons,
+    stickyActionBarButtons,
+    isStickyAlwaysThere = false,
+    contextMenu,
+    singleRowSelectable = false,
+    footerCheckboxes,
+    dynamicButtons,
+    gridHeadlines,
+    showSearch = true,
+    showGridInformation = true,
+    removePaddingAroundGrid = false,
+    rowSelectionChangedCallback,
+    onTableDrawCompleted,
+    showSearchBarJustAboveGrid = false,
+    gridHeadlineButtons,
+    exportOption = {},
+    defaultDataTableOptions = { SortOrder: [], PageSize: 10, PaginationDropDownValues: [10, 25, 50, 100] },
+    additionalData,
+    onTableInitCompleted,
+    processing = true,
+    UseManualSearchButton = false,
+    hasReadOnlyPrivilege = false
+}) {
+
+    //we dynamically construct the tblId based on the divId passed-in.
+    var tblId = divId + '_dynamictable';
+
+    //this is where we pre-created all the html that constructs the native bootstrap table and turned it into a javascript variable for parsing and a dynamic implementation
+    var thisTableRootHTML = `
+&lt;div class="bs-table-section"&gt;
+    &lt;div class="row grid-search"&gt;
+        &lt;div class="col-lg-12 cardWrapper grid-search-area" id="${tblId}divGridSearch"&gt;
+            &lt;!-- end card --&gt;
+        &lt;/div&gt;
+        &lt;!-- end col --&gt;
+    &lt;/div&gt;
+    &lt;div class="row" data-grid="${tblId}"&gt;
+        &lt;div class="col-lg-12"&gt;
+            &lt;div class="card  border-top-0 mb-0"&gt;
+                &lt;div class="card-body"&gt;
+
+                    &lt;!--&lt;div class="row table-information"&gt;
+                        &lt;div class="total-selected-count col-xl-3"&gt;
+                            &lt;div class="d-flex flex-wrap align-items-center gap-2 table-actionlist p-3"&gt;
+                                &lt;div class="mb-0 result-count" id="${tblId}selectedCount"&gt;&lt;span id="${tblId}selected-items" class="text-CoreTwo"&gt;&lt;/span&gt; Selected&lt;/div&gt;
+                                &lt;div class="mb-0 result-count" id="${tblId}totalCount"&gt;&lt;span id="${tblId}total-items" class="text-CoreTwo"&gt;&lt;/span&gt; Results&lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div class="col-xl-9"&gt;
+                            &lt;div class="d-flex flex-wrap p-3"&gt;
+                                &lt;div class="d-inline ms-auto ps-2"&gt;
+
+                                &lt;/div&gt;
+                                &lt;div class="mt-1 d-md-flex justify-content-end custom-datatable-content"&gt;
+                                    &lt;div class="input-group w-auto border rounded me-2 mb-2 mb-md-0 filter-element"&gt;
+                                        &lt;span class="input-group-text fal fa-search font-size-13 bg-transparent border-0" style="height: 100%;padding-top: 0.9em;"&gt; &lt;/span&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class="d-inline-block dynamicButtons"&gt;&lt;/div&gt;
+                                    &lt;div class="dropdown d-inline-block datatable-dropdown-button" id="${tblId}gearIconButton"&gt;
+                                        &lt;a class="text-muted dropdown-toggle font-size-16" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"&gt;
+                                            &lt;span class="iconify LERETAIconMain" data-inline="false" data-icon="akar-icons:gear" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Action" &gt;&lt;/span&gt;
+                                        &lt;/a&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;--&gt;
+                    &lt;!--&lt;div class="row separator"&gt;&lt;/div&gt;--&gt;
+                    &lt;!--&lt;hr class="my-0"/&gt;--&gt;
+
+                    &lt;div class="row my-3 px-3 grid-headline-area table-information"&gt;
+
+                        &lt;div class="col-md-12 px-0 mb-3" style="border-bottom:1px solid #ccc"&gt;
+                            &lt;div class="row"&gt;
+                                &lt;div class="total-selected-count col-xl-3"&gt;
+                                    &lt;div class="d-flex flex-wrap align-items-center gap-2 table-actionlist p-3 pb-0"&gt;
+                                        &lt;div class="mb-0 result-count" id="${tblId}selectedCount"&gt;&lt;span id="${tblId}selected-items" class="text-CoreTwo"&gt;&lt;/span&gt; Selected&lt;/div&gt;
+                                        &lt;div class="mb-0 result-count" id="${tblId}totalCount"&gt;&lt;span id="${tblId}total-items" class="text-CoreTwo"&gt;&lt;/span&gt; Results&lt;/div&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                                &lt;div class="col-xl-9"&gt;
+                                    &lt;div class="pagination-section align-items-center border-bottom-0 mb-0"&gt;
+                                        &lt;div class="pagination pagination-accumatch d-flex "&gt;&lt;/div&gt;
+                                        &lt;div class="toolbox"&gt; &lt;span&gt;Items per page&lt;/span&gt; &lt;/div&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div class="col-xxl-10 col-xl-10 px-0 d-flex"&gt;
+                            &lt;div class="lereta-grid-headline lereta-grid-headline d-flex flex-wrap align-self-start"&gt;&lt;/div&gt;
+                            &lt;div class="devil-dynamicButtons-section d-flex flex-wrap justify-content-end lereta-grid-headline-buttons-area"&gt;
+                                &lt;div class="d-md-flex justify-content-end custom-datatable-content align-items-start"&gt;
+                                    &lt;div class="d-inline-block lereta-grid-headline-buttons"&gt;&lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+
+                        &lt;div class="col-xxl-2 col-xl-2 d-flex flex-wrap justify-content-end"&gt;
+                            &lt;!--&lt;div class="ms-3 toolbox"&gt;Items per page&lt;/div&gt;--&gt;
+                            &lt;div class="dynamicButtons-section"&gt;
+                                &lt;div class="row"&gt;
+                                    &lt;!---&lt;div class="col-xxl-12 col-xl-12 d-flex flex-wrap justify-content-end lereta-grid-headline-buttons-area"&gt;
+                                        &lt;div class="mt-1 d-md-flex justify-content-end custom-datatable-content"&gt;
+                                            &lt;div class="d-inline-block lereta-grid-headline-buttons"&gt;&lt;/div&gt;
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;--&gt;
+                                    &lt;div class="col-xxl-12 col-xl-12 d-flex flex-wrap justify-content-end"&gt;
+                                        &lt;div class="d-md-flex justify-content-end custom-datatable-content align-items-center"&gt;
+                                            &lt;div class="input-group w-auto border rounded me-2 mb-2 mb-md-0 filter-element"&gt;
+                                                &lt;span class="input-group-text fal fa-search font-size-13 bg-transparent border-0" style="height: 100%;padding-top: 0.9em;"&gt; &lt;/span&gt;
+                                            &lt;/div&gt;
+                                            &lt;div class="d-flex align-items-center dynamicButtons"&gt;&lt;/div&gt;
+                                            &lt;div class="dropdown d-inline-block datatable-dropdown-button gearicon-head" id="${tblId}gearIconButton"&gt;
+                                                &lt;a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"&gt;
+                                                    &lt;span class="iconify LERETAIconMain" data-inline="false" data-icon="akar-icons:gear" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Action"&gt;&lt;/span&gt;
+                                                &lt;/a&gt;
+                                            &lt;/div&gt;
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=""&gt;
+                        &lt;div class="border-0 mb-0" data-pattern="priority-columns"&gt;
+                            &lt;table id='${tblId}' class="table align-middle table-striped tablegrid min-w-100 tbl-header-action-box ${tblId}"&gt;&lt;/table&gt;
+                        &lt;/div&gt;
+                        &lt;div class="d-flex justify-content-between align-items-center mb-4 mt-4"&gt;
+                            &lt;div id="additional-checkbox-area" class="m-1"&gt;&lt;/div&gt;
+                            &lt;!--&lt;div class="pagination-section align-items-center"&gt;
+                                    &lt;div class="pagination pagination-accumatch d-flex "&gt;&lt;/div&gt;&nbsp;
+                                    &lt;div class="toolbox"&gt; &lt;span&gt;Items per&lt;/span&gt; page&lt;/div&gt;
+                                &lt;div class="pg-item"&gt;
+                                    &lt;p class="item-txt mb-0 d-flex ms-auto"&gt;&lt;span class="items-per-page"&gt;&lt;/span&gt;&nbsp;&lt;div class="pagination pagination-accumatch d-flex "&gt;&lt;/div&gt;&nbsp;Items per page&lt;/p&gt;
+                                    &lt;div class="ms-3 toolbox"&gt;&lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt; --&gt;
+                        &lt;/div&gt;
+                        &lt;div class="custom-footer-tooltip"&gt;
+                            &lt;div class="footer-blue hide"&gt;
+                                &lt;div class="action-batch-scroll animated show fade-out-bottom"&gt;
+                                    &lt;div class="${tblId}-button-section tbl-footer-btn-section"&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;div id="${tblId}stickyActionBarButtons" class="sticky-action-bar ${isStickyAlwaysThere ? " active" : "" }"&gt;&lt;/div&gt;
+                &lt;/div&gt;
+                &lt;!-- end card-body --&gt;
+            &lt;/div&gt;
+            &lt;!-- end card --&gt;
+        &lt;/div&gt;
+        &lt;!-- end col --&gt;
+    &lt;/div&gt;
+    &lt;!-- end row --&gt;
+
+    &lt;div id="${tblId}contextMenu" class="dropdown contextMenudropdown clearfix drpdwnmenuwidth"&gt;
+
+    &lt;/div&gt;
+    &lt;!-- save model --&gt;
+    &lt;div class="modal fade" id="${tblId}-save" tabindex="-1" aria-labelledby="modal-centered-dark" aria-hidden="true"&gt;
+        &lt;div class="modal-dialog modal-dialog-centered"&gt;
+            &lt;div class="modal-content"&gt;
+                &lt;div class="modal-header bg-modal-header shadow-none"&gt;
+                    &lt;h5 class="text-white font-size-16" id="modal-centered-simpleLabel"&gt;Save Search&lt;/h5&gt;
+                    &lt;button type="button" class="btn btn-link text-white py-0" data-bs-dismiss="modal" aria-label="Close"&gt;
+                        &lt;i class="fal fa-times"&gt;&lt;/i&gt;
+                    &lt;/button&gt;
+                &lt;/div&gt;
+                &lt;div class="modal-body m-4"&gt;
+                    &lt;div&gt;
+                        &lt;h4 class="font-size-18"&gt;Save This Search&lt;/h4&gt;
+                        &lt;div&gt;
+                            &lt;p&gt;
+                                You can save this search to be used repeatedly in the future. Please give this search a name.
+                            &lt;/p&gt;
+                            &lt;input type="text" class="form-control" id="txtSearchName"&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class="modal-footer m-0 p-0"&gt;
+                    &lt;div class="d-flex justify-content-end align-items-center w-100 m-0 pt-2 pb-2"&gt;
+                        &lt;button type="button" class="btn lereta-save-bar-btn-cancel" onclick="javascript:$('#${tblId}-save').modal('hide');"&gt;Cancel&lt;/button&gt;
+                        &lt;button type="button" class="btn btn-save-dark save-close" id="${tblId}_saveFilter"&gt;Save & Close&lt;/button&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+        `;
+
+    //now we have thisTableRootHTML that can be used to drop into place where the user's DIV exists, from the divId variable passed-in...
+    $('#' + divId).html(thisTableRootHTML);
+    $('#' + divId).removeClass();
+
+    //Disable click outside of bootstrap modal area to close modal
+    $('#' + tblId + '-save').modal({ backdrop: 'static', keyboard: false });
+
+    if (showSearch && showSearchBarJustAboveGrid) {
+        $("#" + tblId + "divGridSearch").parents(".grid-search").detach().insertAfter($("[data-grid=" + tblId + "]").find(".grid-headline-area"));
+    }
+    var domElements = { infoContainer: '.items-per-page', lengthContainer: '.toolbox', paginationContainer: 'div.pagination' }
+
+
+    var d = new Date();
+
+    var month = d.getMonth() + 1;
+    var day = d.getDate();
+    var SelectRowOnRowClick = true;
+
+    var currentdate = d.getFullYear() + '/' +
+        (month &lt; 10 ? '0' : '') + month + '/' +
+        (day &lt; 10 ? '0' : '') + day;
+
+    var buttonContainer = ".datatable-dropdown-button";
+
+    //add accumatch-table class for applying css if it is not there
+    if (!$("#" + tblId).hasClass("accumatch-table"))
+        $("#" + tblId).addClass("accumatch-table")
+
+    //default column defination if passed none
+    var columnDefs = [
+        {
+            'targets': 0,
+            "orderable": false,
+            'render': function (data, type, row, meta) {
+                if (type === 'display') {
+                    data = '&lt;div class="checkbox form-check form-check-CoreTwo font-size-14"&gt;&lt;input type="checkbox" class="dt-checkboxes form-check-input chk"&gt;&lt;label class="form-check-label"&gt;&lt;/label&gt;&lt;/div&gt;';
+                }
+                return data;
+            },
+            'checkboxes': {
+                'selectRow': false,
+                'selectAllRender': '&lt;div class="checkbox form-check form-check-CoreTwo font-size-14"&gt;&lt;input type="checkbox" class="dt-checkboxes form-check-input chk"&gt;&lt;label class="form-check-label"&gt;&lt;/label&gt;&lt;/div&gt;'
+            }
+        }
+    ];
+
+    //export used when datatable is exported
+    var exportOptions = {
+        format: {
+            header: function (html, idx, node) {
+                return $('input', node).attr('name') ? $('input', node).attr('name').trim() : $(node).text();
+            },
+        },
+        columns: function (idx, data, node) {
+            if ($.inArray(idx, exportOption.skipColumns ? exportOption.skipColumns : []) &lt; 0) {
+                return true;
+            }
+            return false;
+        }
+    };
+
+    //button array that appends into gear icon dropdown
+    var buttons = [
+        {
+            extend: 'csv', filename: exportOption.title ? exportOption.title : 'grid_' + currentdate, text: 'CSV', className: 'btn btn-outline-light', exportOptions: exportOptions,
+            init: function (api, node, config) {
+                $(node).removeClass('dt-button')
+            },
+            action: function (e, dt, button, config) {
+                var self = this;
+                var oldStart = dt.settings()[0]._iDisplayStart;
+                dt.one('preXhr', function (e, s, data) {
+                    data.length = -1;
+                    dt.one('preDraw', function (e, settings, json, xhr) {
+                        $.fn.dataTable.ext.buttons.csvHtml5.available(dt, config) ?
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(self, e, dt, button, config) :
+                            $.fn.dataTable.ext.buttons.csvFlash.action.call(self, e, dt, button, config);
+                        dt.one('preXhr', function (e, s, data) {
+                            // DataTables thinks the first item displayed is index 0, but we're not drawing that.
+                            // Set the property to what it was before exporting.
+                            settings._iDisplayStart = oldStart;
+                            data.start = oldStart;
+                        });
+                        setTimeout(dt.ajax.reload, 0);
+                        return false;
+                    })
+                }).draw();
+            }
+
+        },
+        {
+            extend: 'print', title: exportOption.title ? exportOption.title : "tblGrid" + "_" + currentdate, className: 'btn btn-outline-light', exportOptions: exportOptions,
+            init: function (api, node, config) {
+                $(node).removeClass('dt-button')
+            },
+            action: function (e, dt, button, config) {
+                var self = this;
+                var oldStart = dt.settings()[0]._iDisplayStart;
+                dt.one('preXhr', function (e, s, data) {
+                    data.length = -1;
+                    dt.one('preDraw', function (e, settings, json, xhr) {
+                        $.fn.dataTable.ext.buttons.print.action(e, dt, button, config);
+                        dt.one('preXhr', function (e, s, data) {
+                            // DataTables thinks the first item displayed is index 0, but we're not drawing that.
+                            // Set the property to what it was before exporting.
+                            settings._iDisplayStart = oldStart;
+                            data.start = oldStart;
+                        });
+                        setTimeout(dt.ajax.reload, 0);
+                        return false;
+                    })
+                }).draw();
+            }
+        },
+        {
+            text: "Show Filter",
+            init: function (api, node, config) {
+                $(node).removeClass('dt-button')
+            },
+            className: !showSearch ? 'hide' : '',
+            action: function (e, dt, node, config) {
+                var filterRow = $('#' + tblId + '_wrapper .dataTables_scrollHeadInner thead tr:eq(1)');
+                if (filterRow.hasClass("v-collapse")) {
+                    $('#' + tblId + '_wrapper .dataTables_scrollHeadInner thead tr th input.DatagridFilterTextBoxes').each(function () {
+                        $(this).parent().css("min-width", ($(this).attr("placeholder").length * parseFloat($(this).css("font-size")) / 2) + 40);
+                        if ($(this).attr("type") == "number")
+                            $(this).css("padding-right", ".25rem");
+                    })
+                }
+                else
+                    $('#' + tblId + '_wrapper .dataTables_scrollHeadInner thead tr th:not(:empty)').css("min-width", "")
+                filterRow.removeClass("d-none");
+                filterRow.toggleClass("v-collapse");
+                dt.columns.adjust();
+                $(node).find('span').html((filterRow.hasClass("v-collapse") ? "Show" : "Hide") + " Filter");
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        },
+        {
+            text: 'Show Search',
+            init: function (api, node, config) {
+                $(node).removeClass('dt-button')
+            },
+            className: !showSearch ? 'hide' : '',
+            action: function (e, dt, node, config) {
+                var gridArea = $("div[data-grid=" + tblId + "]");
+                if (gridArea.find(".filter-element").length &gt; 0) {
+                    if (gridArea.find(".filter-element").is(":hidden"))
+                        gridArea.find(".filter-element").show();
+                    else
+                        gridArea.find(".filter-element").hide();
+                    $(node).find('span').html((gridArea.find(".filter-element").is(":hidden") ? "Show" : "Hide") + " Search");
+                }
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        },
+        {
+            text: 'Columns',
+            init: function (api, node, config) {
+                $(node).parents('li').addClass('dropdown-submenu');
+                var lis = "";
+                var col = $('#' + tblId + ' thead tr:eq(0) th');
+                $.each(col, function (index, elmnt, value) {
+                    var toggledColumnBgColor = "";
+                    if (api.column(index).visible() == false && (colDefs[index].visible == undefined || colDefs[index].visible == true)) {
+                        toggledColumnBgColor = "toggledColumnBgColor";
+                    }
+                    else if (api.column(index).visible() == true && colDefs[index].visible == false) {
+                        toggledColumnBgColor = "toggledColumnBgColor";
+                    }
+                    lis += "&lt;li&gt;
+    &lt;a class='dropdown-item column-toggle " + toggledColumnBgColor + "' href='javascript:void(0)' onclick='toggleColumnVisibility(this," + index + ", event, \"" + tblId + "\")'&gt;
+        ";
+        //if (index == 0)
+        //    lis += "0: CheckBox Column";
+        //else
+        lis += index + ": " + (colDefs ? colDefs[index].title || colDefs[index].name : $(elmnt).text());
+        lis += "
+    &lt;/a&gt;
+&lt;/li&gt;";
+                })
+                $(node).parent().append("&lt;ul class='dropdown-menu overflow-auto bottom-0 webkit-scroll' style='max-height:400px;bottom:0%!important;right:100%!important;left:auto;'&gt;" + lis + "&lt;/ul&gt;");
+                $(node).parent().find("ul li a.column-toggle").off().on("click", function () {
+                    CheckDefaultColumnVisibility(tblId, colDefs);
+                });
+            },
+            action: function (e, dt, node, config) {
+                $(node).next('ul').toggle();
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        },
+        {
+            text: "Show Default Columns",
+            init: function (api, node, config) {
+                if (CheckDefaultColumnVisibility(tblId, colDefs))
+                    $(node).removeClass('disabled');
+                else
+                    $(node).addClass('disabled');
+            },
+            className: "setting_menu_show_default_columns",
+            action: function (e, dt, node, config) {
+                showDefaultColumnsVisibility(dt, colDefs, tblId);
+                CheckDefaultColumnVisibility(tblId, colDefs);
+            }
+        }
+    ];
+
+    //override the value if it is passed while calling the function
+    if (typeof (colDefs) != "undefined" && colDefs != null)
+        columnDefs = colDefs;
+
+    if (typeof (showGearIcon) == "undefined" || showGearIcon == null)
+        showGearIcon = true;
+
+    if (typeof (showPagination) == "undefined" || showPagination == null)
+        showPagination = true;
+
+    //destroy if it is already created
+    var oTable;
+    if ($.fn.dataTable.isDataTable($("#" + tblId))) {
+        oTable = $("#" + tblId).DataTable();
+        oTable.destroy();
+        $('#' + divId).html(thisTableRootHTML);
+    }
+
+    //hide grid information based on condition
+    if (showGridInformation == false) {
+        var gridArea = $("div[data-grid=" + tblId + "]");
+        gridArea.find(".table-information").hide();
+    }
+
+    //removes the padding around grid based on condition
+    if (removePaddingAroundGrid) {
+
+        //tighten up the grid
+        var gridArea = $("div[data-grid=" + tblId + "]");
+        gridArea.children(":first").addClass("p-0");
+        gridArea.find(".card-body:first").addClass("p-0");
+        $("#" + tblId).parents(".modal-body").addClass("pb-0");
+
+        //tighten up the search bar
+        $("#" + tblId + "divGridSearch").parents(".cardWrapper").addClass("p-0");
+        $("#" + tblId + "divGridSearch").parents(".card").addClass("m-0");
+    }
+    else {
+        if ($("#" + tblId).parents(".modal-body").length &gt; 0) {
+            $("#" + tblId + "divGridSearch").parents(".card").addClass("margin-10-override");
+            //tblFeedAndChecks_dynamictabledivGridSearch
+            console.log("#" + tblId + "divGridSearch");
+        }
+    }
+
+    //bind grid headline
+    bindGridHeadLine(gridHeadlines, tblId);
+
+    if (gridHeadlineButtons && gridHeadlineButtons.length &gt; 0) {
+        var gridArea = $("div[data-grid=" + tblId + "]");
+        $headlineContainer = gridArea.find('.lereta-grid-headline-buttons')
+        $headlineContainer.html("");
+        gridHeadlineButtons.forEach(({ html, onClick, PrivilegeHtmlAttributes }, i) =&gt; {
+
+            const buttonHtml = `
+&lt;button class="text-muted btn font-size-16 px-2 py-0 d-inline-block" type="button" ${PrivilegeHtmlAttributes ?? "" }&gt;
+    ${html}
+&lt;/button&gt;
+                    `
+            const $button = $(buttonHtml)
+            $headlineContainer.append($button);
+            let test = $button.attr('userHasPrivilege');
+            let privilegeIsDenied = (typeof test !== "undefined" && test.match(/false/i));
+            if (privilegeIsDenied)
+                $button.attr("disabled", "disabled");
+            else
+                $button.off().on('click', onClick);
+        })
+    }
+    if ((!gridHeadlines || gridHeadlines.length == 0))
+        $("div[data-grid=" + tblId + "]").find('.lereta-grid-headline').parent().hide();
+
+    if ((!gridHeadlineButtons || gridHeadlineButtons.length == 0))
+        $("div[data-grid=" + tblId + "]").find('.lereta-grid-headline-buttons-area').hide();
+    var timeout;
+    var html = '';
+    columnDefs.forEach(function (obj) {
+        html += `&lt;th class="${obj.class || obj.sClass || " "}"&gt;${obj.name}&lt;/th&gt;`;
+    });
+    $("#" + tblId).html("&lt;thead&gt;&lt;tr&gt;" + html + "&lt;/tr&gt;
+&lt;thead&gt;
+    ");
+    //create a clone of header for the new row for filter on the individual column
+    $('#' + tblId + ' thead tr').clone(true).addClass("d-none").appendTo('#' + tblId + ' thead');
+    $('#' + tblId + ' thead tr:eq(1) th').each(function (i) {
+    if (i != 0 && !$(this).hasClass("no-search")) {
+    $(this).addClass("pe-0");
+    var title = $(this).text();
+    if (columnDefs[i].type == "date") {
+    $(this).html('
+    &lt;div class="position-relative"&gt;&lt;input type="text" class="form-control pe-4 datepickerGrid DatagridFilterTextBoxes" placeholder="' + (columnDefs[i].title || columnDefs[i].name) + '"&gt;&lt;span class="input-group-text bg-transparent position-absolute top-0 end-0 border-0 h-100"&gt;&lt;span class="iconify LERETAIconMain LERETAIconDatePicker" data-inline="false" data-icon="bi:calendar-fill"&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;');
+    flatpickr('.datepickerGrid', {
+    enableTime: false,
+    dateFormat: "m-d-Y",
+    errorHandler: function (e) {
+    //placeholder text throws the error so for now we just hide the errors
+    //console.log('flatpickr error: ' + e);
+    }
+    });
+    }
+    else if (columnDefs[i].type == "multiselectcustom") {
+    $(this).html('
+    &lt;select class="form-select mt-3 multi-select-filter-value form-control select2-multiple" multiple="multiple" data-placeholder="' + (columnDefs[i].title || columnDefs[i].name) + '"&gt; &lt;/select&gt;');
+    var $select = $(this).find(".multi-select-filter-value");
+    if (columnDefs[i].dataFunction) {
+    var arr = typeof columnDefs[i].dataFunction == "function" ? columnDefs[i].dataFunction() : window[columnDefs[i].dataFunction]();
+    $.each(arr, function (i, v) {
+    $select.append(new Option(v.text || v.Text, v.value || v.Value));
+    })
+    }
+    else if (columnDefs[i].enumName) {
+    var enm = GlobalEnums[columnDefs[i].enumName]
+    $.each(Object.keys(enm), function (i, v) {
+    $select.append(new Option(v, enm[v]));
+    })
+    }
+    var that = this;
+    setTimeout(function () {
+    $select.select2({
+    closeOnSelect: false,
+    width: '100px',
+    hight: '40px',
+    dropdownCssClass: "Select2MultipleBadge"
+    }).on("select2:open", function (e) {
+    setTimeout(function () {
+    var aria = $(that).find("span.select2-selection").attr("aria-owns");
+    var listOptions = $("#" + aria + " li");
+    var width = listOptions.first().height();
+
+    $.each(listOptions, function (i, v) {
+    if (width &lt; $(this).width())
+    width = $(this).width();
+    });
+
+    $("#" + aria + " li").width(width);
+    });
+    });
+    $select.on('select2:select', function (e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    return false;
+    });
+    $select.on('change', function (e) {
+    const $select = $(this);
+    const numSelected = $select.select2('data').length;
+    $select.next('span.select2').find('ul').html(function () {
+    return `
+    &lt;li class="select2-selection__choice"&gt;${numSelected} selected&lt;/li&gt;`;
+    })
+    });
+    const numSelected = $select.select2('data').length;
+    $select.next('span.select2').find('ul').html(function () {
+    return `
+    &lt;li class="select2-selection__choice"&gt;${numSelected} selected&lt;/li&gt;`;
+    })
+    $('.select2-search__field').css('width', '100%');
+    $('span.select2-selection--multiple').addClass('form-control');
+    $('span.select2-selection--multiple').addClass('p-0');
+
+    $select.on('change.select2', function (e) {
+    var obj = searchObj.appliedSearch.find(x =&gt; x.name == colDefs[i].name)
+
+    if ($select.val().length &gt; 0) {
+    if (obj) {
+    obj.filterType = "In";
+    obj.filterValue = $select.val().join("|");
+    }
+    else {
+    var obj = searchObj.columns.find(x =&gt; x.name == colDefs[i].name)
+    obj.filterType = "In";
+    obj.filterValue = $select.val().join("|");
+    searchObj.appliedSearch.push(obj);
+    }
+    }
+    else {
+    searchObj.appliedSearch = searchObj.appliedSearch.filter(x =&gt; x.name != colDefs[i].name);
+    }
+
+    if (timeout)
+    clearTimeout(timeout);
+
+    timeout = setTimeout(function () { $("#" + tblId).DataTable().ajax.reload(); }, 1000);
+    });
+    })
+    }
+    else
+    $(this).html('
+    &lt;input type="' + (columnDefs[i].type == " number" ? "number" : "text" ) + '" class="form-control DatagridFilterTextBoxes" placeholder="' + (columnDefs[i].title || columnDefs[i].name) + '" name="' + columnDefs[i].name + '" /&gt;' );
+           $('input', this).on('keyup change', function () {
+           var obj=searchObj.appliedSearch.find(x =&gt; x.name == colDefs[i].name)
+
+    if (this.value) {
+    if (obj) {
+    obj.filterType = "Contains";
+    obj.filterValue = this.value;
+    }
+    else {
+    var obj = searchObj.columns.find(x =&gt; x.name == colDefs[i].name)
+    obj.filterType = "Contains";
+    obj.filterValue = this.value;
+    searchObj.appliedSearch.push(obj);
+    }
+    }
+    else {
+    searchObj.appliedSearch = searchObj.appliedSearch.filter(x =&gt; x.name != colDefs[i].name);
+    }
+
+    if (timeout)
+    clearTimeout(timeout);
+
+    timeout = setTimeout(function () { $("#" + tblId).DataTable().ajax.reload(); }, 1000);
+
+    });
+    $('input', this).on('click focus', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+    });
+
+    // Add Maxlength if it is defined in columndefination and if filter is type of number and string
+    if (columnDefs[i].type == "string" || columnDefs[i].type == "number") {
+    if (columnDefs[i].maxSearchLength) {
+    var input = $(this).find("input[type=text]")
+    if (input.length == 0 || columnDefs[i].type == "number") input = $(this).find("input[type=number]");
+    input.attr("maxlength", columnDefs[i].maxSearchLength);
+
+    if (columnDefs[i].type == "number") {
+    input.attr("oninput", "javascript: if (this.value.length &gt; this.maxLength) this.value = this.value.slice(0, this.maxLength);");
+    }
+    }
+    }
+
+    }
+    else
+    $(this).html('')
+    });
+    //bind the search
+    var searchObj = null;
+    if (showSearch) {
+    searchObj = new GlobalSearch().BindGlobalSearch({ tblId, searchColumns: colDefs.filter(obj =&gt; obj.searchable != false).map(obj =&gt; ({ title: obj.searchTitle || obj.title || obj.name, name: obj.name, type: obj.type, target: obj.targets, default: obj.default, dataFunction: obj.dataFunction, enumName: obj.enumName, parentsearch: obj.parentsearch, lookupproperty: obj.lookupproperty, requiredfilter: obj.requiredfilter, preferred: obj.preferred, part1name: obj.part1name, part2name: obj.part2name, part1: obj.part1, part2: obj.part2, OtherParts: obj.OtherParts, DownArrowShowAllItems: obj.DownArrowShowAllItems, part1DownArrowShowAllItems: obj.part1DownArrowShowAllItems, part2DownArrowShowAllItems: obj.part2DownArrowShowAllItems, dependancy: obj.dependancy, maxSearchLength: obj.maxSearchLength, part1type: obj.part1type, part2type: obj.part2type })), containerDiv: tblId + 'divGridSearch', UseManualSearchButton: UseManualSearchButton });
+    //createSearchForDatatableUpdated({ tblId, searchColumns: colDefs.filter(obj =&gt; obj.searchable != false).map(obj =&gt; ({ title: obj.searchTitle || obj.title || obj.name, name: obj.name, type: obj.type, target: obj.targets, default: obj.default, dataFunction: obj.dataFunction, parentsearch: obj.parentsearch, lookupproperty: obj.lookupproperty, requiredfilter: obj.requiredfilter })), containerDiv: tblId + 'divGridSearch' });
+    }
+
+    else
+    $("#" + tblId + "divGridSearch").parents(".grid-search").hide();
+
+    $('#' + tblId + ' thead tr:eq(1)').addClass("v-collapse");
+
+    if (defaultDataTableOptions.PaginationDropDownValues == undefined
+    || defaultDataTableOptions.PaginationDropDownValues == null
+    || defaultDataTableOptions.PaginationDropDownValues.length == 0) {
+
+    defaultDataTableOptions.PaginationDropDownValues = [10, 25, 50, 100];
+    }
+    var paginationDropdownHtml = '
+    &lt;select&gt;
+        ';
+        $.each(defaultDataTableOptions.PaginationDropDownValues, function (ind, val) {
+        paginationDropdownHtml += '
+        &lt;option value="' + val + '"&gt;' + val + '&lt;/option&gt;';
+        });
+        paginationDropdownHtml += '
+    &lt;/select&gt;';
+
+    oTable = $("#" + tblId).DataTable({
+    //"pageLength": 25,
+    serverSide: true,
+    ajax: function (data, callback, settings) {
+    data.page = (data.start / data.length) + 1;
+    data["search"] = data.search.value;
+    //get column name for order not number
+    $.each(data.order, function (i, v) {
+    this.column = data.columns[this.column].data;
+    });
+
+    if (data.order.length &gt; 0) {
+    data.orderDir = data.order[0].dir;
+    data.order = data.order[0].column;
+    }
+
+    var searchColumn = "";
+    var searchType = "";
+    var searchValue = "";
+
+    //Append Additional Data
+    if (additionalData) {
+    Object.keys(additionalData).forEach(function (key) {
+    data[key] = additionalData[key];
+    });
+    }
+
+    if (searchObj != null) {
+    var obj = searchObj.createSearchObjectForGrid();
+    searchColumn = obj.searchColumn;
+    searchType = obj.searchType;
+    searchValue = obj.searchValue;
+    }
+    data.searchColumn = searchColumn;
+    data.searchType = searchType;
+    data.searchValue = searchValue;
+
+    $("input[type=checkbox][data-param]").each(function () {
+    data[$(this).data("param")] = $(this).is(":checked");
+    });
+
+    // manipulate data used in ajax request prior to server call
+    localStorage.setItem(tblId + "page", data.page);
+    localStorage.setItem(tblId + "length", data.length);
+    localStorage.setItem(tblId + "draw", data.draw);
+    delete data.columns;
+
+    var callAjax = true;
+    var requiredColumns = [];
+    if (searchObj != null) {
+    requiredColumns = searchObj.getRequiredFields();
+    }
+    callAjax = requiredColumns.length == 0;
+
+    if (callAjax) {
+
+    //adding a unique querystring to prevent automatic server-side or browser-side caching
+    ajaxUrl = GlobalAddDynamicQuerystringParam(ajaxUrl);
+
+    console.info('ajax URL: ' + ajaxUrl);
+
+    GlobalTrackThisEvent('DatagridGetDataAttempt', data, ajaxMethod + ' to url: ' + ajaxUrl);
+
+    //the actual ajax call is here, leveraging the params to dictage GET/POST, as well as the ajaxURL itself
+    $.ajax({
+    url: ajaxUrl,
+    data: data,
+    cache: false,
+    dataType: 'json',
+    type: ajaxMethod,
+    success: function (resultData) {
+    ////what is this really doing?
+    if (parseInt(localStorage.getItem(tblId + "length")) &gt; 0 && resultData.data.length &gt; (parseInt(localStorage.getItem(tblId + "page")) - 1) * parseInt(localStorage.getItem(tblId + "length")))
+    resultData.data = resultData.data.splice((parseInt(localStorage.getItem(tblId + "page")) - 1) * parseInt(localStorage.getItem(tblId + "length")), parseInt(localStorage.getItem(tblId + "length")));
+
+    callback({
+    draw: parseInt(localStorage.getItem(tblId + "draw")),
+    recordsTotal: resultData.recordsTotal,
+    recordsFiltered: resultData.recordsFiltered,
+    data: resultData.data
+    });
+    }
+    });
+    }
+    else {
+
+    setTimeout(function () {
+    //Mockup AJAX Call
+    callback({
+    draw: data.draw,
+    recordsTotal: 0,
+    recordsFiltered: 0,
+    data: []
+    });
+    $("#" + tblId + " .dataTables_empty").html("Filter
+    &lt;b&gt;" + requiredColumns.join(',') + "&lt;/b&gt; is required to fill data");
+    }, 100)
+    }
+    },
+    "sDom": "B&lt;'dt-toolbar'&lt;'col-xs-12 col-sm-6'&gt;&lt;'col-sm-6 col-xs-12 d-none'lf&gt;r&gt;" +
+    "t" +
+    "&lt;'dt-toolbar-footer'&lt;'col-sm-6 col-xs-12 hidden-xs'&gt;&lt;'col-xs-12 col-sm-6'p&gt;&gt;",
+    // "autoWidth": true,
+    // "lengthChange": false,
+    "paging": showPagination,
+    "pageLength": defaultDataTableOptions.PageSize ? defaultDataTableOptions.PageSize : 10,
+    "pagingType": "simple_numbers",
+    'processing': processing,
+    "bStateSave": true,
+    "fnStateSave": function (oSettings, oData) {
+    localStorage.setItem(window.location.pathname + "_" + tblId + "_currentstatesave", JSON.stringify(oData));
+    },
+    "fnStateLoad": function (oSettings) {
+    return JSON.parse(localStorage.getItem(window.location.pathname + "_" + tblId + "_currentstatesave"));
+    },
+    "drawCallback": function () {
+    $("#" + tblId + ' .dataTables_paginate &gt; .pagination').addClass('pagination');
+    if (typeof onTableDrawCompleted != "undefined" && onTableDrawCompleted != null) {
+    onTableDrawCompleted(oTable);
+    }
+    disableGridLevelActionIfUserHasReadOnlyPrivilege(tblId, hasReadOnlyPrivilege);
+    },
+    searchDelay: 1000,
+    orderCellsTop: true,
+    "initComplete": function () {
+    //show hide gear icon based on parameter
+    if (showGearIcon == false)
+    $('#' + tblId + 'gearIconButton').addClass('d-none');
+    else
+    CheckDefaultColumnVisibility(tblId, colDefs);
+
+
+    var gridArea = $("div[data-grid=" + tblId + "]");
+
+    if (showPagination == false)
+    gridArea.find(".pagination-section").addClass('d-none');
+
+    //Append datatable info to specific element
+    if (typeof (domElements) != "undefined" && domElements != null) {
+    if (typeof (domElements.infoContainer != "undefined" && domElements.infoContainer != null))
+    $("#" + tblId + '_info').appendTo(gridArea.find(domElements.infoContainer))
+    if (typeof (domElements.lengthContainer != "undefined" && domElements.lengthContainer != null)) {
+    $("#" + tblId + '_length').appendTo(gridArea.find(domElements.lengthContainer));
+    $("#" + tblId + '_length label').addClass("mb-0");
+    $("#" + tblId + '_length select').removeClass();
+    $("#" + tblId + '_length select').addClass("form-select form-select-sm w-auto");
+    $("#" + tblId + '_length select').attr("aria-controls", tblId);
+    $("#" + tblId + '_length select').attr("name", tblId + "_length");
+    }
+    if (typeof (domElements.paginationContainer != "undefined" && domElements.paginationContainer != null))
+    $("#" + tblId + '_paginate').appendTo(gridArea.find(domElements.paginationContainer))
+    }
+
+    //Clone Header for columnwise filter
+    $('#' + tblId + '_wrapper .dataTables_scrollHead thead:eq(1)').remove();
+
+    if (gridArea.find(".filter-element").length &gt; 0) {
+    $("#" + tblId + '_filter').find('input').addClass("form-control border-0").prependTo(gridArea.find(".filter-element"));
+    gridArea.find(".filter-element").hide();
+    }
+    if ($('#' + tblId + 'selected-items').parent().find("[data-icon='mdi:close']").length == 0)
+    $('#' + tblId + 'selected-items').parent().append('
+    &lt;span class="iconify LERETAIconMainGray" data-inline="false" data-icon="mdi:close"&gt;&lt;/span&gt;');
+    var rowCount = $("#" + tblId + ' tbody tr').length;
+    rowCount = oTable.page.info().recordsTotal;
+
+    $('#' + tblId + 'total-items').html(formatAsNumberWithCommas(rowCount));
+    $('#' + tblId + 'selectedCount').addClass('d-none');
+
+
+
+    if ($(buttonContainer).length &gt; 0)
+    oTable.buttons().container().appendTo(gridArea.find(buttonContainer));
+
+    //context menu on right click on table
+    if (contextMenu && contextMenu.items) {
+
+    $.contextMenu.types.html = function (item, opt, root) {
+    // this === item.$node
+    $(item.name).appendTo(this);
+    };
+    $.contextMenu({
+    selector: '#' + tblId + ' tbody tr',
+    trigger: 'right',
+    callback: contextMenu.callbackFunction,
+    items: contextMenu.items
+    });
+    }
+
+    //footer checkbox
+    if (footerCheckboxes) {
+    $checkboxContainer = gridArea.find('#additional-checkbox-area')
+    footerCheckboxes.forEach(({ onClick, title, inputAttrs, ajaxParam }) =&gt; {
+    const checkboxHtml = `
+    &lt;label class="checkbox form-check form-check-inline form-check-CoreTwo font-size-14"&gt;
+        &lt;input type="checkbox" class="dt-checkboxes form-check-input chk" ${inputAttrs} data-param="${ajaxParam}" /&gt;
+        &lt;span&gt;${title}&lt;/span&gt;
+    &lt;/label&gt;
+    `
+    const $checkbox = $(checkboxHtml)
+    $checkboxContainer.append($checkbox)
+    $checkbox.find('input').off().on('click', function () {
+    if (typeof (onClick) != "undefined" && onClick != null)
+    onClick();
+    oTable.ajax.reload();
+    })
+    })
+
+    }
+    else {
+    gridArea.find('#additional-checkbox-area').hide();
+    gridArea.find('#additional-checkbox-area').parent().removeClass("mb-4");
+    gridArea.find('#additional-checkbox-area').parent().removeClass("mt-4");
+    }
+
+    //dynamicButtons that appends before the gear icon
+    if (dynamicButtons) {
+
+    $buttonContainer = gridArea.find('.dynamicButtons')
+    dynamicButtons.forEach(({ onClick, html, tooltip, childs, parentTagId, PrivilegeHtmlAttributes }) =&gt; {
+    var tooltipHtml = (tooltip ? 'data-bs-toggle="tooltip" data-bs-placement="top" title="' + tooltip + '"' : "");
+    const buttonHtml = `
+    &lt;span&gt;
+        &lt;button class="text-muted btn font-size-16 px-2 py-0 d-inline-block" ${tooltipHtml} ${PrivilegeHtmlAttributes ?? "" }&gt;
+            ${html}
+        &lt;/button&gt;
+    &lt;/span&gt;
+    `
+    const $button = $(buttonHtml)
+    $buttonContainer.append($button);
+    let test = $button.find("button").attr('userHasPrivilege');
+    let privilegeIsDenied = (typeof test !== "undefined" && test.match(/false/i));
+    if (privilegeIsDenied)
+    $button.find("button").attr("disabled", "disabled");
+    else
+    $button.on('click', onClick);
+
+    //For childs
+    if (childs != undefined && childs != null && childs.length &gt; 0 && parentTagId != undefined) {
+    const $buttonContainerChild = $buttonContainer.find($('#' + parentTagId));
+
+    childs.forEach(({ onClick, html }) =&gt; {
+
+    const buttonHtmlChild = html
+    const $buttonChild = $(buttonHtmlChild)
+    $buttonContainerChild.append($buttonChild)
+    $buttonChild.on('click', onClick);
+    })
+    }
+
+    })
+    }
+
+    const getButtonId = title =&gt; title.replace(/\s/gi, '');
+    //sticky action bar buttons that shows when any row is selected
+    if (typeof (stickyActionBarButtons) == 'object' && stickyActionBarButtons) {
+
+    var buttons = '';
+    var id = "#" + tblId + "stickyActionBarButtons";
+    $(id).append('
+    &lt;div class="stickeyButtons" id="' + tblId + 'stickeyButtons"&gt;
+        \
+        &lt;div class="ms-3 d-flex flex-wrap gap-3 '+ tblId + 'stickeyButtons"&gt;
+            \
+        &lt;/div&gt;\
+    &lt;/div&gt;');
+
+    stickyActionBarButtons.forEach(function (button) {
+    const id = getButtonId(button.title) + new Date().getTime();
+    var imgHtml = button.image ? '
+    &lt;span class="iconify LERETAIconMain-inverse" data-inline="false" data-icon="' + button.image + '"&gt;&lt;/span&gt;' : "";
+    buttons = '\
+    &lt;button type="button" class="btn btn-gridbottom slideupbar-btn" id='+ id + ' ' + (button.PrivilegeHtmlAttributes ?? "") + '&gt;
+        \
+        ' + imgHtml + '\
+        &lt;span class=" ' + (button.image ? 'ms-3' : '') + ' mb-0 d-none d-md-block"&gt;' + button.title + '&lt;/span&gt;\
+    &lt;/button&gt;\
+    ';
+    $('.' + tblId + 'stickeyButtons').append(buttons);
+    let test = $(`#${id}`).attr('userHasPrivilege');
+    let privilegeIsDenied = (typeof test !== "undefined" && test.match(/false/i));
+    if (privilegeIsDenied)
+    $(`#${id}`).attr("disabled", "disabled");
+    else
+    $(`#${id}`).off().on('click', button.onClick);
+    });
+    }
+
+    var myModal = document.getElementById(tblId + '-save')
+    myModal.addEventListener('shown.bs.modal', function () {
+    var textbox = $(myModal).find("#txtSearchName");
+    textbox.focus();
+    textbox.off().keypress(function (e) {
+    if (e.keyCode == 13)
+    $(this).parents(".modal-content").find("[id*=_saveFilter]").click();
+    });
+    })
+    oTable.columns.adjust();
+
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    if (typeof onTableInitCompleted != "undefined" && onTableInitCompleted != null) {
+    onTableInitCompleted(oTable);
+    }
+
+    disableGridLevelActionIfUserHasReadOnlyPrivilege(tblId, hasReadOnlyPrivilege);
+
+    $(window).on("scroll", function () {
+
+    var tableScroll = $("#" + tblId + '_wrapper .dataTables_scroll');
+    var tableScrollBody = tableScroll.find('.dataTables_scrollBody');
+    var topScroll = tableScroll.find(".doubleScroll-scroll-wrapper");
+
+    // check current widht and if meismatch update it
+    var table = tableScrollBody.find("table");
+    if (table.width() != topScroll.find(".doubleScroll-scroll").width()) {
+    topScroll.find(".doubleScroll-scroll").width(table.width());
+    }
+
+    if (table.width() != topScroll.find(".doubleScroll-scroll").width()) {
+    topScroll.find(".doubleScroll-scroll").width(table.width());
+    }
+
+    if ($("body").find("." + tblId + ".fixedHeader-floating").length &gt; 0 && $("body").find("." + tblId + ".fixedHeader-floating").parent().width() &gt; 0) {
+    if (tableScroll.length &gt; 0) {
+    var headerHeight = tableScroll.find(".dataTables_scrollHead").height();
+    var top = Math.abs(tableScroll[0].getBoundingClientRect().top) + headerHeight;
+
+    // set postition
+    tableScroll.css("position", "relative");
+    topScroll.css("position", "absolute");
+    topScroll.css("top", top + "px");
+    }
+    }
+    else {
+    topScroll.css("position", "static");
+    }
+    });
+    },
+    'columnDefs': columnDefs,
+    select: {
+    style: singleRowSelectable ? 'single' : 'multi',
+    selector: SelectRowOnRowClick ? 'tr' : 'td .dt-checkboxes',
+    info: false
+    },
+    order: defaultDataTableOptions.SortOrder ? defaultDataTableOptions.SortOrder : [],
+    "language": {
+    "sSearch": '
+    &lt;span class="input-group-addon"&gt;&lt;i class="glyphicon glyphicon-search"&gt;&lt;/i&gt;&lt;/span&gt;',
+    "sEmptyTable": "No data found. Try updating your filter options",
+    "info": "
+    &lt;b&gt;_START_-_END_&lt;/b&gt; of _TOTAL_",
+    //"lengthMenu": " _MENU_",
+    "lengthMenu": paginationDropdownHtml,
+    'processing': '
+    &lt;div id="status" style=""&gt;            &lt;div class="avatar-xs"&gt;                &lt;svg class="spinner" viewBox="0 0 100 100"&gt;                    &lt;circle class="spinnercircle" cx="50" cy="50" r="45"&gt;&lt;/circle&gt;                &lt;/svg&gt;            &lt;/div&gt;        &lt;/div&gt;',
+    "paginate": {
+    "next": '
+    &lt;svg class="bs-svg-icn" width="9" height="12" viewBox="0 0 9 12" xmlns="http://www.w3.org/2000/svg"&gt;&lt;path d="M2.01999 0L0.609985 1.41L5.18999 6L0.609985 10.59L2.01999 12L8.01999 6L2.01999 0Z" fill="black" /&gt;&lt;/svg&gt;',
+    "previous": '
+    &lt;svg class="bs-svg-icn" width="9" height="12" viewBox="0 0 9 12" xmlns="http://www.w3.org/2000/svg"&gt;&lt;path d="M6.98001 12L8.39001 10.59L3.81001 6L8.39001 1.41L6.98001 1.23266e-07L0.980013 6L6.98001 12Z" fill="black" /&gt;&lt;/svg&gt;'
+    }
+    },
+    scrollX: true,
+    "scrollY": showPagination ? false : "750px",
+    fixedHeader: true,
+    buttons: {
+    dom: {
+    container: {
+    tag: 'ul',
+    className: "dropdown-menu dropdown-menu-end"
+    },
+    buttonContainer: {
+    tag: 'li',
+    },
+    button: {
+    tag: 'a',
+    className: "dropdown-item"
+    }
+    },
+    buttons: showGearIcon ? buttons : []
+    },
+    exportOptions: {
+    format: {
+    header: function (data, column, row, node) {
+    return $(node).text().trim();
+    }
+    }
+    },
+    columns: colDefs.map(obj =&gt; ({ title: obj.title || obj.name, data: obj.name }))
+    }).on('preDraw', function () {
+    if ($("#" + tblId).parents("tr").length &gt; 0)
+    $("#" + tblId).removeClass("min-w-100")
+    //$("#" + tblId + "_processing").show();
+    }).on('draw.dt', function () {
+    //$("#" + tblId + "_processing").hide();
+    }).on('draw', () =&gt; {
+    //handle dropdown event change for page size change
+    $("#" + tblId + 'PageSize').on('change', function () {
+    oTable.page.len($(this).val()).draw();
+    });
+    $("#" + tblId + '_wrapper .dataTables_scrollBody').addClass("webkit-scroll");
+    $("#" + tblId + '_filter').hide();
+    $("#" + tblId + '_wrapper .dataTables_scrollBody tr').find("div.dropdown").not(".gearicon-head").removeClass("ms-2").find("a.dropdown-toggle").addClass("px-2").click(function (e) {
+    if ($(this).siblings('.dropdown-menu').is(":visible"))
+    $("#" + tblId + '_wrapper .dataTables_scrollBody').addClass("overflow-visible");
+    $(this).parents("tr").siblings("tr").find(".dropdown-menu").hide();
+    $(this).parents("tr").siblings("tr").find(".dropdown-menu").removeClass("show");
+    e.preventDefault();
+    e.stopPropagation();
+    });
+    $("[data-bs-toggle='dropdown']").on('hide.bs.dropdown', function (e) {
+    $("#" + tblId + '_wrapper .dataTables_scrollBody').removeClass("overflow-visible");
+    });
+    //$("#" + tblId + '_wrapper .dataTables_scrollHead').addClass("overflow-visible");
+    //$("#" + tblId + '_wrapper .dataTables_scrollBody').addClass("overflow-visible");
+    //$("#" + tblId + '_wrapper .dataTables_scrollFoot').addClass("overflow-visible");
+
+    $(".filter-btn").attr("data-loading-text", "
+    &lt;i class='fa fa-spinner fa-spin'&gt;&lt;/i&gt; Applying...")
+
+    $(".filter-btn").on("click", function (e) {
+    e.preventDefault();
+    var $this = $(this);
+    var loadingText = '
+    &lt;i class="fa fa-spinner fa-spin"&gt;&lt;/i&gt; Applying...';
+    if ($(this).html() !== loadingText) {
+    $this.data('original-text', $(this).html());
+    $this.html(loadingText);
+    }
+    setTimeout(function () {
+    //filter
+    oTable.search($this.parents(".lereta-filter-menu-content").find(".search-text").val()).draw();
+    setTimeout(function () { oTable.columns.adjust(); $('.dataTables_scrollBody .lereta-filter-menu-content').remove(); }, 100);
+    $this.html($this.data('original-text'));
+    $('.lereta-filter-menu-content').hide();
+    }, 1000);
+    });
+
+    $.fn.dataTable.ext.buttons.alert = {
+    className: 'buttons-alert',
+
+    action: function (e, dt, node, config) {
+    alert(this.text());
+    }
+    };
+
+    $("#" + tblId + '_wrapper .lereta-filter-btn').off().on('click', function (e) {
+    var filterbtn = $('.lereta-filter-menu-content').detach();
+    $(this).closest('.lereta-filter-div').append(filterbtn);
+    $('.lereta-filter-menu-content').show();
+    });
+
+    $(document).on('click', function () {
+    $('.lereta-filter-menu-content').hide();
+    });
+
+    $("#" + tblId + '_wrapper .lereta-filter-btn').off().on('click', function (e) {
+    e.stopPropagation();
+    });
+
+    $('.lereta-filter-menu-content').off().on('click', function (e) {
+    e.stopPropagation();
+    });
+
+    //buttom action bar buttons that shows when any row is selected
+    const getButtonId = title =&gt; title.replace(/\s/gi, '')
+    if (typeof (bottomActionBarButtons) == 'object' && bottomActionBarButtons) {
+    var buttons = '';
+    bottomActionBarButtons.forEach(function (button) {
+    const id = getButtonId(button.title);
+
+    buttons += `
+    &lt;button class="btn12 btn" type="button" id='${id}' ${button.PrivilegeHtmlAttributes ?? "" }&gt;
+        &lt;div class="bg-fill"&gt;
+            ${button.svg != undefined ? button.svg : '&lt;span class="iconify LERETAIconMain-inverse" data-inline="false" data-icon="' + button.image + '"&gt;&lt;/span&gt;'}
+        &lt;/div&gt;
+        &lt;p class=""&gt;${button.title}&lt;/p&gt;
+    &lt;/button&gt;`
+    //buttons += '
+    &lt;li class="list-inline-item"&gt;
+        \
+        //                &lt;button type="button" class="btn btn-link slideupbar-btn" id='+ id + '&gt;
+            \
+            //                    &lt;div class="bg-fill"&gt;' + button.svg + '&lt;/div&gt;\
+            //                    &lt;span class="ms-3 mb-0 d-none d-md-block"&gt;'+ button.title + '&lt;/span&gt;\
+            //
+        &lt;/button&gt;\
+        //
+    &lt;/li&gt;';
+    });
+
+    var id = "." + tblId + "-button-section";
+    //$(id).append('
+    &lt;div class="slideupbar" id="' + tblId + 'slideupbar"&gt;
+        \
+        //    &lt;ul class="list-inline mb-0 d-flex flex-wrap justify-content-between justify-content-md-start  gap-2"&gt;
+            \
+            //        '+ buttons + '\
+            //
+        &lt;/ul&gt;\
+        //
+    &lt;/div&gt;');
+    $(id).html('').append(buttons);
+    bottomActionBarButtons.forEach(function (button) {
+    const id = getButtonId(button.title)
+    let test = $(`#${id}`).attr('userHasPrivilege');
+    let privilegeIsDenied = (typeof test !== "undefined" && test.match(/false/i));
+    if (privilegeIsDenied)
+    $(`#${id}`).attr("disabled", "disabled");
+    else
+    $(`#${id}`).off().on('click', button.onClick)
+    })
+
+    if ($("#" + tblId).parents("[role='tabpanel']").length &gt; 0) {
+    var tabid = $("#" + tblId).parents("[role='tabpanel']").attr("id");
+    $("[data-bs-toggle='tab']").click(function () {
+    var result = oTable.rows('.selected').data().length;
+    if ($(this).attr('data-bs-target').replace('#', '') != tabid) {
+    $("#" + tblId + "slideupbar").removeClass('fade-in-bottom').removeClass('show').addClass('fade-out-bottom');
+    }
+    else if (result &gt; 0)
+    $("#" + tblId + "slideupbar").removeClass('fade-out-bottom').addClass('show fade-in-bottom');
+    });
+    }
+    }
+
+    //code to add select all checkbox
+    var checkbox = columnDefs.filter(function (x) { return x['checkboxes'] });
+    $.each(checkbox, function (i, v) {
+    var checkBoxColumn = v;
+    $('#' + tblId + '_wrapper .dataTables_scrollHead thead tr:eq(0) th:eq(' + checkBoxColumn["targets"] + ')').addClass("ps-2").html(checkBoxColumn["checkboxes"]["selectAllRender"]);
+    $('#' + tblId + '_wrapper .dataTables_scrollHead thead tr:eq(0) th:eq(' + checkBoxColumn["targets"] + ')').find('input').click(function () {
+    var checked = $(this).is(":checked");
+    if (checked) {
+    oTable.rows().select();
+    } else {
+    // get count of disable rows
+    var disabledCheckboxCount = $(oTable.$("input[type='checkbox']:disabled")).length;
+    if (disabledCheckboxCount == 0) {
+    oTable.rows().deselect();
+    } else {
+    // deselect row when checkbox is not disable
+    $.each(oTable.rows().data(), function (ind, val) {
+    var $thisRow = $(oTable.rows(ind).nodes()[0]);
+    if (!$(':checkbox', $thisRow[0]).is(':disabled')) {
+    oTable.rows(ind).deselect();
+    }
+    });
+    }
+    }
+    oTable.cells(null, checkBoxColumn["targets"]).every(function () {
+    var cell = this.node();
+    // checkbox check or uncheck when checkbox is not disable
+    if (!$(cell).find('input[type="checkbox"]').is(':disabled')) {
+    $(cell).find('input[type="checkbox"]').prop('checked', checked);
+    }
+    });
+    });
+    });
+
+    var rowCount = oTable.page.info().recordsTotal;
+    $('#' + tblId + 'totalCount').removeClass('d-none');
+    $('#' + tblId + 'total-items').html(formatAsNumberWithCommas(rowCount));
+    $('#' + tblId + 'selectedCount').addClass('d-none');
+
+    if (!showPagination) {
+    $('#' + tblId + '_wrapper .dataTables_scrollBody').css("height", "auto");
+    }
+    var result = oTable.rows('.selected').data().length;
+
+    if (typeof (bottomActionBarButtons) == 'object' && bottomActionBarButtons && result == 0)
+    //$("#" + tblId + "slideupbar").removeClass('fade-in-bottom').addClass('fade-out-bottom');
+    $("." + tblId + "-button-section").parent().removeClass('fade-in-bottom').addClass('fade-out-bottom');
+
+    if (typeof (stickyActionBarButtons) == 'object' && stickyActionBarButtons && result == 0 && !isStickyAlwaysThere)
+    $("#" + tblId + "stickyActionBarButtons").removeClass('active');
+
+    oTable.columns.adjust();
+    $("#" + tblId).addClass("min-w-100");
+    disableGridLevelActionIfUserHasReadOnlyPrivilege(tblId, hasReadOnlyPrivilege);
+
+    setTimeout(() =&gt; { $("#" + tblId + '_wrapper .dataTables_scrollBody').doubleScroll(); })
+
+
+    }).on('select deselect', function (e, dt, type, indexes) {
+
+    // return when checkbox is disable
+    var $thisRow = $(oTable.rows(indexes).nodes()[0]);
+    if ($(':checkbox', $thisRow[0]).is(':disabled')) {
+    if (!$thisRow.hasClass('selected')) {
+    oTable.rows(indexes).select();
+    return false;
+    }
+    }
+
+    var rowData = oTable.rows(indexes).data().toArray();
+
+    if (SelectRowOnRowClick) {
+
+    var $this = $(oTable.rows(indexes).nodes()[0])
+
+    if (typeof (colDefs) != "undefined" && colDefs != null) {
+    // checkbox check or uncheck when checkbox is not disable
+    if ($this.hasClass('selected')) {
+    if (!$(':checkbox', $this[0]).is(':disabled')) {
+    $(':checkbox', $this[0]).prop('checked', true);
+    }
+    }
+    else {
+    if (!$(':checkbox', $this[0]).is(':disabled')) {
+    $(':checkbox', $this[0]).prop('checked', false);
+    }
+    }
+    }
+    }
+    var rowCount = oTable.page.info().recordsTotal;
+    var result = oTable.rows('.selected').data().length;
+    $('#' + tblId + '_wrapper .dataTables_scrollHead thead tr:eq(0)').find('input[type="checkbox"]').prop("checked", oTable.rows('.selected').data().length == oTable.rows().data().length);
+    //Based on selected row show selected count
+    if (result == 0) {
+    $('#' + tblId + 'totalCount').removeClass('d-none');
+    $('#' + tblId + 'total-items').html(formatAsNumberWithCommas(rowCount));
+    $('#' + tblId + 'selectedCount').addClass('d-none');
+    if (typeof (bottomActionBarButtons) == 'object' && bottomActionBarButtons) {
+    //$("#" + tblId + "slideupbar").removeClass('fade-in-bottom').addClass('fade-out-bottom');
+    $("." + tblId + "-button-section").parent().removeClass('fade-in-bottom').addClass('fade-out-bottom');
+    //setTimeout(function () { $("." + tblId + "-button-section").parent().parent().addClass('hide'); }, 300)
+    }
+    if (typeof (stickyActionBarButtons) == 'object' && stickyActionBarButtons && !isStickyAlwaysThere)
+    $("#" + tblId + "stickyActionBarButtons").removeClass('active');
+    }
+    else {
+    // code to open bottom action bar
+    if (typeof (bottomActionBarButtons) == 'object' && bottomActionBarButtons) {
+    //if ($(".slideupbar.show.fade-in-bottom").length &gt; 0) {
+    //    $.each($(".slideupbar.show.fade-in-bottom").filter(function (i, v) { return $(v).attr("id") != (tblId + "slideupbar") }), function (i, v) {
+    //        var slideUpTableId = $(this).attr("id").replace("slideupbar", "");
+    //        var dtTbl = $("#" + slideUpTableId).DataTable();
+    //        dtTbl.rows().deselect();
+    //        dtTbl.cells().every(function () {
+    //            var cell = this.node();
+    //            $(cell).find('input[type="checkbox"]').prop('checked', false);
+    //        });
+    //        $(this).removeClass('fade-in-bottom').addClass('fade-out-bottom');
+    //    })
+    //}
+    //$("#" + tblId + "slideupbar").removeClass('fade-out-bottom').addClass('show fade-in-bottom');
+    $("." + tblId + "-button-section").parent().parent().removeClass('hide');
+    $("." + tblId + "-button-section").parent().removeClass('fade-out-bottom').addClass('show fade-in-bottom');
+    }
+
+    if (typeof (stickyActionBarButtons) == 'object' && stickyActionBarButtons && !isStickyAlwaysThere)
+    $("#" + tblId + "stickyActionBarButtons").addClass('active');
+
+    $('#' + tblId + 'totalCount').addClass('d-none');
+    $('#' + tblId + 'selected-items').html(formatAsNumberWithCommas(result));
+    $('#' + tblId + 'selectedCount').removeClass('d-none');
+    $('#' + tblId + 'selected-items').siblings('.iconify').off().on('click', function (e) {
+    // get count of disable rows
+    var disabledCheckboxCount = $(oTable.$("input[type='checkbox']:disabled")).length;
+    if (disabledCheckboxCount == 0) {
+    oTable.rows().deselect();
+    } else {
+    // deselect row when checkbox is not disable
+    $.each(oTable.rows().data(), function (ind, val) {
+    var $thisRow = $(oTable.rows(ind).nodes()[0]);
+    if (!$(':checkbox', $thisRow[0]).is(':disabled')) {
+    oTable.rows(ind).deselect();
+    }
+    });
+    }
+
+    oTable.cells().every(function () {
+    var cell = this.node();
+    // checkbox check or uncheck when checkbox is not disable
+    if (!$(cell).find('input[type="checkbox"]').is(':disabled')) {
+    $(cell).find('input[type="checkbox"]').prop('checked', false);
+    }
+    });
+    });
+    }
+
+    // code to rebind grid headline if it is dynamic and event set to select
+    if (gridHeadlines && gridHeadlines.length &gt; 0 && gridHeadlines.filter(function (v) { return (v.isDynamic && v.event == 'select') }).length &gt; 0) {
+    $.each(gridHeadlines.filter(function (v) { return (v.isDynamic && v.event == 'select') }), function (index, value) {
+    var selectedData = [];
+    for (var i = 0; i &lt; oTable.rows('.selected').data().length; i++) {
+    selectedData.push(oTable.rows('.selected').data()[i]);
+    }
+    if (value.calculate.action == "sum") {
+    var key = value.calculate.name;
+    value.value = (value.calculate.prefix ? value.calculate.prefix : "") + selectedData.reduce((a, b) =&gt; a + (parseFloat(b[key].toString().replace(/[^\d.]/g, "")) || 0), 0).toFixed(2);
+    }
+    if (value.calculate.action == "length")
+    value.value = (value.calculate.prefix ? value.calculate.prefix : "") + selectedData.length;
+    });
+    bindGridHeadLine(gridHeadlines, tblId);
+    }
+
+    //row selection callback
+    if (typeof rowSelectionChangedCallback != "undefined" && rowSelectionChangedCallback != null && ((singleRowSelectable && e.type == "select") || !singleRowSelectable)) {
+    var selectedData = [];
+    for (var i = 0; i &lt; oTable.rows('.selected').data().length; i++) {
+    selectedData.push(oTable.rows('.selected').data()[i]);
+    }
+    rowSelectionChangedCallback(selectedData);
+    }
+    disableGridLevelActionIfUserHasReadOnlyPrivilege(tblId, hasReadOnlyPrivilege);
+    e.stopImmediatePropagation();
+    });
+
+    return oTable;
+    }
+    //Bind or update the grid head line for given table
+    var bindGridHeadLine = function (gridHeadlines, tblId) {
+    if (gridHeadlines && gridHeadlines.length &gt; 0) {
+    var gridArea = $("div[data-grid=" + tblId + "]");
+    $headlineContainer = gridArea.find('.lereta-grid-headline')
+    $headlineContainer.html("");
+    gridHeadlines.forEach(({ value, subtext }) =&gt; {
+    const Html = `
+    &lt;div class="d-inline lereta-group-info me-4"&gt;
+        &lt;h4 class="lereta-grid-headline-value"&gt;${value}&lt;/h4&gt;
+        &lt;p class="lereta-grid-headline-subtext"&gt;${subtext}&lt;/p&gt;
+    &lt;/div&gt;
+    `
+    const $headline = $(Html);
+    $headlineContainer.append($headline);
+    })
+    }
+    }
+    //function used to show or hide the column
+    var toggleColumnVisibility = function (element, index, event, tblId) {
+    event.stopPropagation();
+    var dt = $("#" + tblId).DataTable();
+    if (dt.column(index).visible()) {
+    dt.column(index).visible(false);
+    $(element).addClass('invisible-column');
+    }
+    else {
+    dt.column(index).visible(true);
+    $(element).removeClass('invisible-column');
+    }
+    if ($(element).hasClass('toggledColumnBgColor'))
+    $(element).removeClass('toggledColumnBgColor');
+    }
+
+    var countChecked = function ($table, checkboxClass) {
+    if ($table) {
+    // Find all elements with given class
+    var chkAll = $table.find(checkboxClass);
+    // Count checked checkboxes
+    var checked = chkAll.filter(':checked').length;
+    // Count total
+    var total = chkAll.length;
+    // Return an object with total and checked values
+    return {
+    total: total,
+    checked: checked
+    }
+    }
+    }
+
+    //function used to show default columns
+    var showDefaultColumnsVisibility = function (dt, colDefs, tblId) {
+    var cnt = 0;
+    for (var index = 0; index &lt; colDefs.length; index++) {
+    if (dt.column(index).visible() == false && (colDefs[index].visible == undefined || colDefs[index].visible == true)) {
+    dt.column(index).visible(true);
+    cnt++;
+    }
+    else if (dt.column(index).visible() == true && colDefs[index].visible == false) {
+    dt.column(index).visible(false);
+    cnt++;
+    }
+    }
+    if (cnt &gt; 0) {
+    $('#' + tblId + 'gearIconButton').find("ul li a.toggledColumnBgColor").removeClass("toggledColumnBgColor");
+    dt.columns.adjust();
+    }
+    }
+
+    var CheckDefaultColumnVisibility = function (tblId, colDefs) {
+    var countColumnVisibility = 0;
+    var dt = $("#" + tblId).DataTable();
+    for (var index = 0; index &lt; colDefs.length; index++) {
+    if (dt.column(index).visible() == false && (colDefs[index].visible == undefined || colDefs[index].visible == true))
+    countColumnVisibility++;
+    else if (dt.column(index).visible() == true && colDefs[index].visible == false)
+    countColumnVisibility++;
+    }
+    //Check if default column not visible
+    if (countColumnVisibility &gt; 0) {
+    //then set red color to setting icon to denote user to there is no default column visible.
+    $('#' + tblId + 'gearIconButton').find('a .LERETAIconMain').addClass('LERETAIconMainDark');
+
+    //then enable 'Show Default Columns' menu
+    $('#' + tblId + 'gearIconButton').find('a.setting_menu_show_default_columns').removeClass('disabled');
+    }
+    else {
+    //then set default color to setting icon.
+    $('#' + tblId + 'gearIconButton').find('a .LERETAIconMain').removeClass('LERETAIconMainDark');
+
+    //then disable 'Show Default Columns' menu
+    $('#' + tblId + 'gearIconButton').find('a.setting_menu_show_default_columns').addClass('disabled');
+    }
+
+    return countColumnVisibility &gt; 0;
+    }
+
+    //function used to disable grid level action if user has readonly privilege
+    var disableGridLevelActionIfUserHasReadOnlyPrivilege = function (tblId, hasReadOnlyPrivilege) {
+    if (hasReadOnlyPrivilege) {
+    //Disabled dynamic buttons action
+    var gridArea = $("div[data-grid=" + tblId + "]");
+    gridArea.find('.dynamicButtons').find('button:not(.ignore-disabled)').prop('disabled', true).removeAttr('onclick').off();
+    gridArea.find('.dynamicButtons').find('button:not(.ignore-disabled)').parent('span').removeAttr('onclick').off();
+
+    //Disabled grid row level action
+    $('#' + tblId + ' tbody td').find('a:not(.ignore-disabled):not(.lereta-table-ellipsis-dropdown)').addClass('disabled').attr('href', 'javascript:void(0);').removeAttr('onclick').off();
+
+    //Disabled bottomActionBarButtons
+    $("." + tblId + "-button-section").find('button').prop('disabled', true).removeAttr('onclick').off();
+    }
+    }
+
+    /*old one, do not use! only here for reference and can be deleted at any point */
+    function createDataTableForTemplate_Just_As_A_Reference_Not_For_Accumatch(tblId, filterElementId, colDefs, addButtons, buttonContainer) {
+
+    var d = new Date();
+
+    var month = d.getMonth() + 1;
+    var day = d.getDate();
+
+    var currentdate = d.getFullYear() + '/' +
+    (month &lt; 10 ? '0' : '') + month + '/' +
+    (day &lt; 10 ? '0' : '') + day;
+
+    var buttonContainer = (typeof (buttonContainer) != "undefined" && buttonContainer != null) ? buttonContainer : ".drp-btn";
+    var columnDefs = [
+    {
+    'targets': 0,
+    "orderable": false,
+    'render': function (data, type, row, meta) {
+    if (type === 'display') {
+    data = '
+    &lt;div class="checkbox form-check form-check-CoreTwo lereta-table-checkbox mb-0"&gt;&lt;input type="checkbox" class="dt-checkboxes form-check-input chk"&gt;&lt;label class="form-check-label"&gt;&lt;/label&gt;&lt;/div&gt;';
+    }
+
+    return data;
+    },
+    'checkboxes': {
+    'selectRow': true,
+    'selectAllRender': '
+    &lt;div class="checkbox form-check form-check-CoreTwo lereta-table-checkbox mb-0"&gt;&lt;input type="checkbox" class="dt-checkboxes form-check-input chk"&gt;&lt;label class="form-check-label"&gt;&lt;/label&gt;&lt;/div&gt;'
+    }
+    }
+    ];
+
+    var exportOptions = {
+    format: {
+    header: function (html, idx, node) {
+    return $('input', node).attr('name') ? $('input', node).attr('name').trim() : "";
+    },
+    }
+    };
+
+    var buttons = [
+    {
+    extend: 'csv', filename: 'grid_' + currentdate, text: 'CSV', className: 'btn btn-outline-light', exportOptions: exportOptions,
+    init: function (api, node, config) {
+    $(node).removeClass('dt-button')
+    },
+
+    },
+    {
+    extend: 'print', title: "tblGrid" + "_" + currentdate, className: 'btn btn-outline-light', exportOptions: exportOptions,
+    init: function (api, node, config) {
+    $(node).removeClass('dt-button')
+    }
+    },
+    {
+    text: "Show Filter",
+    init: function (api, node, config) {
+    $(node).removeClass('dt-button')
+    },
+    action: function (e, dt, node, config) {
+    var filterRow = $('#' + tblId + '_wrapper .dataTables_scrollHeadInner thead tr:eq(1)');
+    filterRow.toggleClass("v-collapse");
+    dt.columns.adjust();
+    $(node).find('span').html((filterRow.hasClass("v-collapse") ? "Show" : "Hide") + " Filter");
+    e.stopPropagation();
+    e.preventDefault();
+    }
+    },
+    {
+    text: 'Hide Search',
+    init: function (api, node, config) {
+    $(node).removeClass('dt-button')
+    },
+    action: function (e, dt, node, config) {
+    if (typeof (filterElementId) != "undefined" && filterElementId != null && filterElementId != '') {
+    if ($('#' + filterElementId).is(":hidden"))
+    $('#' + filterElementId).parent().show();
+    else
+    $('#' + filterElementId).parent().hide();
+    $(node).find('span').html(($('#' + filterElementId).is(":hidden") ? "Show" : "Hide") + " Search");
+    }
+    e.stopPropagation();
+    e.preventDefault();
+    }
+    },
+    //{
+    //    extend: 'colvis', className: 'dropdown-menu-right',
+    //    init: function (api, node, config) {
+    //        $(node).removeClass('dt-button')
+    //    },
+    //    columnText: function (dt, idx, title) {
+    //        if (idx == 0) {
+    //            return "0: CheckBox Column";
+    //        }
+    //        else {
+    //            return (idx) + ': ' + $('#' + tblId + ' thead tr:eq(0) th:eq(' + idx + ')').text();
+    //        }
+    //        //return (idx + 1) + ': ' + $('#tblGrid thead tr:eq(0) th').each(function (i) {
+    //        //    //title = $(this).html();
+    //        //    return $(this).html().text;
+    //        //});
+    //    }
+    //},
+    {
+    text: 'Columns',
+    init: function (api, node, config) {
+    $(node).parents('li').addClass('dropdown-submenu');
+    var lis = "";
+    var col = $('#' + tblId + ' thead tr:eq(0) th');
+    $.each(col, function (index, elmnt, value) {
+    lis += "
+    &lt;li&gt;
+        &lt;a class='dropdown-item column-toggle' href='javascript:void(0)' onclick='toggleColumnVisibility(this," + index + ", event, \"" + tblId + "\")'&gt;
+            ";
+            if (index == 0)
+            lis += "0: CheckBox Column";
+            else
+            lis += index + ": " + $(elmnt).text();
+            lis += "
+        &lt;/a&gt;
+    &lt;/li&gt;";
+    })
+    $(node).parent().append("
+    &lt;ul class='dropdown-menu'&gt;" + lis + "&lt;/ul&gt;")
+    },
+    action: function (e, dt, node, config) {
+    $(node).next('ul').toggle();
+    e.stopPropagation();
+    e.preventDefault();
+    }
+    }
+    ];
+
+
+
+    if (typeof (colDefs) != "undefined" && colDefs != null)
+    columnDefs = colDefs;
+
+    if (typeof (addButtons) == "undefined" || addButtons == null)
+    addButtons = true;
+
+    var oTable;
+    if ($.fn.dataTable.isDataTable($("#" + tblId))) {
+    oTable = $("#" + tblId).DataTable();
+    oTable.destroy();
+    }
+
+
+    $('#' + tblId + ' thead tr').clone(true).appendTo('#' + tblId + ' thead');
+    $('#' + tblId + ' thead tr:eq(1) th').each(function (i) {
+    if (i != 0 && !$(this).hasClass("no-search")) {
+    var title = $(this).text();
+    $(this).html('
+    &lt;input type="text" class="form-control" placeholder="Search ' + title + '" name="' + title + '" /&gt;');
+
+    $('input', this).on('keyup change', function () {
+    if (oTable.column(i).search() !== this.value) {
+    oTable
+    .column(i)
+    .search(this.value)
+    .draw();
+    }
+    });
+    $('input', this).on('click focus', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+    });
+
+    }
+    });
+    $('#' + tblId + ' thead tr:eq(1)').addClass("v-collapse");
+
+    oTable = $("#" + tblId).DataTable({
+    "sDom": "&lt;'dt-toolbar'&lt;'col-xs-12 col-sm-6'f&gt;&lt;'col-sm-6 col-xs-12 hidden-xs'l&gt;r&gt;" +
+    "t" +
+    "&lt;'dt-toolbar-footer'&lt;'col-sm-6 col-xs-12 hidden-xs'i&gt;&lt;'col-xs-12 col-sm-6'p&gt;&gt;",
+    "autoWidth": false,
+    "sPaginationType": "full_numbers",
+    "deferLoading": 57,
+    "drawCallback": function () {
+    $("#" + tblId + ' .dataTables_paginate &gt; .pagination').addClass('pagination');
+    },
+    'columnDefs': columnDefs,
+    select: {
+    style: 'multi',
+    selector: 'td:first-child'
+    },
+    order: [],
+    "oLanguage": {
+    "sSearch": '
+    &lt;span class="input-group-addon"&gt;&lt;i class="glyphicon glyphicon-search"&gt;&lt;/i&gt;&lt;/span&gt;',
+    "sEmptyTable": "No data found. Try updating your filter options"
+    },
+    "scrollX": true,
+    dom: 'Bfrtip',
+    buttons: {
+    dom: {
+    container: {
+    tag: 'ul',
+    className: "dropdown-menu dropdown-menu-end"
+    },
+    buttonContainer: {
+    tag: 'li',
+    },
+    button: {
+    tag: 'a',
+    className: "dropdown-item"
+    }
+    },
+    buttons: addButtons ? buttons : []
+    },
+    exportOptions: {
+    format: {
+    header: function (data, column, row, node) {
+    return $(node).text().trim();
+    }
+    }
+    }
+    });
+    if ($(buttonContainer).length &gt; 0)
+    oTable.buttons().container().appendTo(buttonContainer);
+    $("#" + tblId + '_filter').hide();
+    $("#" + tblId + '_wrapper .dataTables_scrollHead').addClass("overflow-visible");
+    $("#" + tblId + '_wrapper .dataTables_scrollBody').addClass("overflow-visible");
+    $("#" + tblId + '_wrapper .dataTables_scrollFoot').addClass("overflow-visible");
+
+    if (typeof (filterElementId) != "undefined" && filterElementId != null && filterElementId != '') {
+    $('#' + filterElementId).keyup(function () {
+    oTable.search($(this).val()).draw();
+    })
+    }
+    $(".filter-btn").attr("data-loading-text", "
+    &lt;i class='fa fa-spinner fa-spin'&gt;&lt;/i&gt; Applying...")
+
+    $(".filter-btn").on("click", function (e) {
+    e.preventDefault();
+    var $this = $(this);
+    var loadingText = '
+    &lt;i class="fa fa-spinner fa-spin"&gt;&lt;/i&gt; Applying...';
+    if ($(this).html() !== loadingText) {
+    $this.data('original-text', $(this).html());
+    $this.html(loadingText);
+    }
+    setTimeout(function () {
+    //filter
+    oTable.search($this.parents(".lereta-filter-menu-content").find(".search-text").val()).draw();
+    setTimeout(function () { oTable.columns.adjust(); $('.dataTables_scrollBody .lereta-filter-menu-content').remove(); }, 100);
+    $this.html($this.data('original-text'));
+    $('.lereta-filter-menu-content').hide();
+    }, 1000);
+    });
+
+    $.fn.dataTable.ext.buttons.alert = {
+    className: 'buttons-alert',
+
+    action: function (e, dt, node, config) {
+    alert(this.text());
+    }
+    };
+
+    $("#" + tblId + '_wrapper .lereta-filter-btn').off().on('click', function (e) {
+    var filterbtn = $('.lereta-filter-menu-content').detach();
+    $(this).closest('.lereta-filter-div').append(filterbtn);
+    $('.lereta-filter-menu-content').show();
+    });
+
+    $(document).on('click', function () {
+    $('.lereta-filter-menu-content').hide();
+    });
+
+    $("#" + tblId + '_wrapper .lereta-filter-btn').off().on('click', function (e) {
+    e.stopPropagation();
+    });
+
+    $('.lereta-filter-menu-content').off().on('click', function (e) {
+    e.stopPropagation();
+    });
+
+    }
+    $(document).on('preInit.dt', function (e, settings) {
+    if (
+    settings.oInit
+    && settings.oInit.fixedHeader
+    && settings.oInit.scrollX
+    ) {
+    $(settings.nScrollBody).parents(".webkit-scroll").scroll(function () {
+    if (!settings._fixedHeader) {
+    return false;
+    }
+
+    let tableFloatingHeader = settings._fixedHeader.dom.header.floating;
+    if (tableFloatingHeader) {
+    tableFloatingHeader.css('left', this.getBoundingClientRect().x - parseInt($(this).scrollLeft()) + 'px');
+    }
+    });
+    }
+    });
+
+    // Double Scroll JS
+    (function ($) {
+
+    jQuery.fn.doubleScroll = function (userOptions) {
+
+    // Default options
+    var options = {
+    contentElement: undefined, // Widest element, if not specified first child element will be used
+    scrollCss: {
+    'overflow-x': 'auto',
+    'overflow-y': 'hidden',
+    'height': '20px',
+    'z-index': '12'
+    },
+    contentCss: {
+    'overflow-x': 'auto',
+    'overflow-y': 'hidden'
+    },
+    onlyIfScroll: true, // top scrollbar is not shown if the bottom one is not present
+    resetOnWindowResize: false, // recompute the top ScrollBar requirements when the window is resized
+    timeToWaitForResize: 30 // wait for the last update event (usefull when browser fire resize event constantly during ressing)
+    };
+
+    $.extend(true, options, userOptions);
+
+    // do not modify
+    // internal stuff
+    $.extend(options, {
+    topScrollBarMarkup: '
+    &lt;div class="doubleScroll-scroll-wrapper webkit-scroll"&gt;&lt;div class="doubleScroll-scroll"&gt;&lt;/div&gt;&lt;/div&gt;',
+    topScrollBarWrapperSelector: '.doubleScroll-scroll-wrapper',
+    topScrollBarInnerSelector: '.doubleScroll-scroll'
+    });
+
+    var _showScrollBar = function ($self, options) {
+
+    if (options.onlyIfScroll && $self.get(0).scrollWidth &lt;= Math.round($self.width())) {
+    // content doesn't scroll
+    // remove any existing occurrence...
+    $self.prev(options.topScrollBarWrapperSelector).remove();
+    return;
+    }
+
+    // add div that will act as an upper scroll only if not already added to the DOM
+    var $topScrollBar = $self.prev(options.topScrollBarWrapperSelector);
+
+    if ($topScrollBar.length == 0) {
+
+    // creating the scrollbar
+    // added before in the DOM
+    $topScrollBar = $(options.topScrollBarMarkup);
+    $self.before($topScrollBar);
+
+    // apply the css
+    $topScrollBar.css(options.scrollCss);
+    $(options.topScrollBarInnerSelector).css("height", "20px");
+    $self.css(options.contentCss);
+
+    var scrolling = false;
+
+    // bind upper scroll to bottom scroll
+    $topScrollBar.bind('scroll.doubleScroll', function () {
+    if (scrolling) {
+    scrolling = false;
+    return;
+    }
+    scrolling = true;
+    $self.scrollLeft($topScrollBar.scrollLeft());
+    });
+
+    // bind bottom scroll to upper scroll
+    var selfScrollHandler = function () {
+    if (scrolling) {
+    scrolling = false;
+    return;
+    }
+    scrolling = true;
+    $topScrollBar.scrollLeft($self.scrollLeft());
+    };
+    $self.bind('scroll.doubleScroll', selfScrollHandler);
+    }
+
+    // find the content element (should be the widest one)
+    var $contentElement;
+
+    if (options.contentElement !== undefined && $self.find(options.contentElement).length !== 0) {
+    $contentElement = $self.find(options.contentElement);
+    } else {
+    $contentElement = $self.find('&gt;:first-child');
+    }
+
+    // set the width of the wrappers
+    $(options.topScrollBarInnerSelector, $topScrollBar).width($contentElement.outerWidth());
+    $topScrollBar.width($self.width());
+    $topScrollBar.scrollLeft($self.scrollLeft());
+
+    }
+
+    return this.each(function () {
+
+    var $self = $(this);
+
+    _showScrollBar($self, options);
+
+    // bind the resize handler
+    // do it once
+    if (options.resetOnWindowResize) {
+
+    var id;
+    var handler = function (e) {
+    _showScrollBar($self, options);
+    };
+
+    $(window).bind('resize.doubleScroll', function () {
+    // adding/removing/replacing the scrollbar might resize the window
+    // so the resizing flag will avoid the infinite loop here...
+    clearTimeout(id);
+    id = setTimeout(handler, options.timeToWaitForResize);
+    });
+
+    }
+
+    });
+
+    }
+
+    }(jQuery));
+
+            
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
